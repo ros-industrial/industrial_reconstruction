@@ -1,0 +1,3 @@
+string directory   # Path to save the data
+---
+bool success

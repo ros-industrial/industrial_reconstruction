@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>open3d_interface</name>
+  <version>0.0.0</version>
+  <description>A collection of ROS interfaces for Open3D</description>
+
+  <author email="levi.armstrong@swri.org">Levi Armstrong</author>
+  <maintainer email="levi.armstrong@swri.org">Levi Armstrong</maintainer>
+  <license>Apache2</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>roslaunch</exec_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+</package>
