@@ -2,8 +2,6 @@
 # The MIT License (MIT)
 # See license file or visit www.open3d.org for details
 
-# examples/python/utility/visualization.py
-
 import copy
 import open3d as o3d
 

@@ -70,6 +70,26 @@ def check_folder_structure(path_dataset):
             "Path %s is not exist!" % path_color
 
 
+def write_pose(filename, pose):
+    with open(filename, 'w') as f:
+        f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+            pose[0, 0], pose[0, 1], pose[0, 2], pose[0, 3]))
+        f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+            pose[1, 0], pose[1, 1], pose[1, 2], pose[1, 3]))
+        f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+            pose[2, 0], pose[2, 1], pose[2, 2], pose[2, 3]))
+        f.write('{0:.8f} {1:.8f} {2:.8f} {3:.8f}\n'.format(
+            pose[3, 0], pose[3, 1], pose[3, 2], pose[3, 3]))
+
+
+def read_pose(filename):
+    import numpy as np
+
+    f = open(filename, "r")
+    content = f.readlines()
+    return np.array(list(map(float, (''.join(content[0:4])).strip().split()))).reshape((4, 4))
+
+
 def write_poses_to_log(filename, poses):
     with open(filename, 'w') as f:
         for i, pose in enumerate(poses):

@@ -19,6 +19,7 @@ add_service_files(
     StartRecording.srv
     StopRecording.srv
     ReconstructSurface.srv
+    ReconstructTSDFSurface.srv
 )
 
 generate_messages(

@@ -1,6 +1,6 @@
 bool use_default_settings # This will ignore everything below settings
-string path_dataset # dataset/realsense.bag or dataset/depth and dataset/color
-string path_intrinsic # optional/read_from_bag_file.json
+string path_dataset # The path to dataset which includes a depth and color folder
+string path_intrinsic # The path to camera_intrinsic.json which is usually in the dataset directory
 bool debug_mode # false
 
 # Stages to run
@@ -20,8 +20,6 @@ float32 tsdf_cubic_size # 3.0
 string icp_method # "color"
 string global_registration # "ransac"
 bool python_multi_threading # true
-
-
 
 ---
 bool success

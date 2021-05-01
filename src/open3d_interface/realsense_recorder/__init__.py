@@ -10,9 +10,6 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 import shutil
-import time
-import datetime
-import sys
 import open3d as o3d
 import rospkg
 import rospy
@@ -20,10 +17,10 @@ import rospy
 from os import makedirs
 from os.path import exists, join
 from enum import IntEnum
-from open3d_interface.reconstruction.initialize_config import initialize_config
-from open3d_interface.utility.file import check_folder_structure, make_clean_folder
-from open3d_interface.srv import StartRecording, StopRecording, ReconstructSurface
-from open3d_interface.srv import StartRecordingResponse, StopRecordingResponse, ReconstructSurfaceResponse
+from open3d_interface.utility.file import make_clean_folder
+from open3d_interface.srv import StartRecording, StopRecording
+from open3d_interface.srv import StartRecordingResponse, StopRecordingResponse
+from open3d_interface.utility.ros import reconstructCallback
 
 path_output = "/tmp"
 path_depth = join(path_output, "depth")
@@ -63,7 +60,7 @@ def save_intrinsic_as_json(filename, frame):
             indent=4)
 
 
-def startRecording(req):
+def startRecordingCallback(req):
   global record, record_rosbag, pipeline, frame_count
   global path_output, path_depth, path_color, path_bag
 
@@ -121,87 +118,20 @@ def startRecording(req):
   record = True
   return StartRecordingResponse(True)
 
-def stopRecording(req):
+def stopRecordingCallback(req):
   global record
   rospy.loginfo(rospy.get_caller_id() + "Stop Recording")
   record = False
   return StopRecordingResponse(True)
-
-def reconstruct(req):
-  rospy.loginfo(rospy.get_caller_id() + "Reconstruct Surface")
-
-  if not req.make and not req.register and not req.refine and not req.integrate:
-     return ReconstructSurfaceResponse(False)
-
-  config = {}
-  if not req.use_default_settings:
-    config["name"] = req.name
-    config["max_depth"] = req.max_depth
-    config["voxel_size"] = req.voxel_size
-    config["max_depth_diff"] = req.max_depth_diff
-    config["preference_loop_closure_odometry"] = req.preference_loop_closure_odometry
-    config["preference_loop_closure_registration"] = req.preference_loop_closure_registration
-    config["tsdf_cubic_size"] = req.tsdf_cubic_size
-    config["global_registration"] = req.global_registration
-    config["python_multi_threading"] = req.python_multi_threading
-
-  config["path_dataset"] = req.path_dataset
-  config["path_intrinsic"] = req.path_intrinsic
-  config["debug_mode"] = req.debug_mode
-
-  # check folder structure
-  initialize_config(config)
-  check_folder_structure(config["path_dataset"])
-  assert config is not None
-
-  print("====================================")
-  print("Configuration")
-  print("====================================")
-  for key, val in config.items():
-      print("%40s : %s" % (key, str(val)))
-
-  times = [0, 0, 0, 0]
-  if req.make:
-      start_time = time.time()
-      import open3d_interface.reconstruction.make_fragments as make_fragments
-      make_fragments.run(config)
-      times[0] = time.time() - start_time
-  if req.register:
-      start_time = time.time()
-      import open3d_interface.reconstruction.register_fragments as register_fragments
-      register_fragments.run(config)
-      times[1] = time.time() - start_time
-  if req.refine:
-      start_time = time.time()
-      import open3d_interface.reconstruction.refine_registration as refine_registration
-      refine_registration.run(config)
-      times[2] = time.time() - start_time
-  if req.integrate:
-      start_time = time.time()
-      import open3d_interface.reconstruction.integrate_scene as integrate_scene
-      integrate_scene.run(config)
-      times[3] = time.time() - start_time
-
-  print("====================================")
-  print("Elapsed time (in h:m:s)")
-  print("====================================")
-  print("- Making fragments    %s" % datetime.timedelta(seconds=times[0]))
-  print("- Register fragments  %s" % datetime.timedelta(seconds=times[1]))
-  print("- Refine registration %s" % datetime.timedelta(seconds=times[2]))
-  print("- Integrate frames    %s" % datetime.timedelta(seconds=times[3]))
-  print("- Total               %s" % datetime.timedelta(seconds=sum(times)))
-  sys.stdout.flush()
-
-  return ReconstructSurfaceResponse(True, path_output + "/scene/integrated.ply")
 
 def main():
   global pipeline, output_folder, path_depth, path_color, frame_count, record, clipping_distance
 
   rospy.init_node('open3d_realsense_recorder', anonymous=True)
 
-  start_server = rospy.Service('start_recording', StartRecording, startRecording)
-  stop_server = rospy.Service('stop_recording', StopRecording, stopRecording)
-  stop_server = rospy.Service('reconstruct', ReconstructSurface, reconstruct)
+  start_server = rospy.Service('start_recording', StartRecording, startRecordingCallback)
+  stop_server = rospy.Service('stop_recording', StopRecording, stopRecordingCallback)
+  stop_server = rospy.Service('reconstruct', ReconstructSurface, reconstructCallback)
 
   # Streaming loop
   try:
