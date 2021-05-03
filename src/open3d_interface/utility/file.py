@@ -42,15 +42,20 @@ def add_if_exists(path_dataset, folder_names):
 def get_rgbd_folders(path_dataset):
     path_color = add_if_exists(path_dataset, ["image/", "rgb/", "color/"])
     path_depth = join(path_dataset, "depth/")
-    return path_color, path_depth
+    path_pose = join(path_dataset, "pose/")
+    return path_color, path_depth, path_pose
 
 
-def get_rgbd_file_lists(path_dataset):
-    path_color, path_depth = get_rgbd_folders(path_dataset)
+def get_rgbd_file_lists(path_dataset, has_tracking):
+    path_color, path_depth, path_pose = get_rgbd_folders(path_dataset)
     color_files = get_file_list(path_color, ".jpg") + \
             get_file_list(path_color, ".png")
     depth_files = get_file_list(path_depth, ".png")
-    return color_files, depth_files
+    if has_tracking:
+      pose_files = get_file_list(path_pose, ".pose")
+    else:
+      pose_files = []
+    return color_files, depth_files, pose_files
 
 
 def make_clean_folder(path_folder):
@@ -60,14 +65,14 @@ def make_clean_folder(path_folder):
         shutil.rmtree(path_folder)
         makedirs(path_folder)
 
-def check_folder_structure(path_dataset):
+def check_folder_structure(path_dataset, has_tracking):
     if isfile(path_dataset) and path_dataset.endswith(".bag"):
         return
-    path_color, path_depth = get_rgbd_folders(path_dataset)
-    assert exists(path_depth), \
-            "Path %s is not exist!" % path_depth
-    assert exists(path_color), \
-            "Path %s is not exist!" % path_color
+    path_color, path_depth, path_pose = get_rgbd_folders(path_dataset)
+    assert exists(path_depth), "Path %s is not exist!" % path_depth
+    assert exists(path_color), "Path %s is not exist!" % path_color
+    if has_tracking:
+      assert exists(path_pose), "Path %s is not exist!" % path_color
 
 
 def write_pose(filename, pose):

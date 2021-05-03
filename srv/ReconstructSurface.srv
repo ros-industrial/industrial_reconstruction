@@ -1,6 +1,7 @@
 bool use_default_settings # This will ignore everything below settings
 string path_dataset # The path to dataset which includes a depth and color folder
 string path_intrinsic # The path to camera_intrinsic.json which is usually in the dataset directory
+bool has_tracking # false. This indicates if it should also find a pose information with the dataset
 bool debug_mode # false
 
 # Stages to run

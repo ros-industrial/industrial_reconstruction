@@ -50,11 +50,12 @@ def reconstructSystemCallback(req):
 
   config["path_dataset"] = req.path_dataset
   config["path_intrinsic"] = req.path_intrinsic
+  config["has_tracking"] = req.has_tracking
   config["debug_mode"] = req.debug_mode
 
   # check folder structure
   initialize_config(config)
-  check_folder_structure(config["path_dataset"])
+  check_folder_structure(config["path_dataset"], req.has_tracking)
   assert config is not None
 
   print("====================================")

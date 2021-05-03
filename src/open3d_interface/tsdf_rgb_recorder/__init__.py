@@ -33,7 +33,6 @@ path_pose = join(path_output, "pose")
 camera_info_topic = '/camera/rgb/camera_info'
 tracking_frame = ''
 world_frame = ''
-poses = []
 
 record = False
 frame_count = 0
