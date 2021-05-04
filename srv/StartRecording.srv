@@ -2,7 +2,7 @@ string directory   # Path to save the data
 bool enable_tracking # Indicates if a tf frame should be tracked
 
 # The settings below are only required if enable_tracking is set to true
-string tracked_frame # The frame to be tracked
+string tracking_frame # The frame to be tracked
 string relative_frame # The frame to recored the tracked_frame pose relative to
 ---
 bool success

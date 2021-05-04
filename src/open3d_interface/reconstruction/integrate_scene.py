@@ -15,7 +15,7 @@ from open3d_interface.reconstruction.make_fragments import read_rgbd_image
 
 def scalable_integrate_rgb_frames(path_dataset, intrinsic, config):
     poses = []
-    [color_files, depth_files] = get_rgbd_file_lists(path_dataset)
+    [color_files, depth_files, pose_files] = get_rgbd_file_lists(path_dataset, config["has_tracking"])
     n_files = len(color_files)
     n_fragments = int(math.ceil(float(n_files) / \
             config['n_frames_per_fragment']))

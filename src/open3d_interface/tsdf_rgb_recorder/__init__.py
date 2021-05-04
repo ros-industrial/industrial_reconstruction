@@ -165,6 +165,7 @@ def reconstructTSDFSurfaceCallback(req):
   else:
     # Integrate scene
     for s in range(num_frames):
+      print("Integrating frames: {:d} of {:d}".format(s, num_frames))
       volume.integrate(rgbd_color_array[s], intrinsic, np.linalg.inv(pose_array[s]))
 
   # Extract Mesh and save to file
