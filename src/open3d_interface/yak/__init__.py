@@ -123,14 +123,16 @@ def stopYakReconstructionCallback(req):
 
   mesh = tsdf_volume.extract_triangle_mesh()
   mesh.compute_vertex_normals()
+  mesh_filepath = join(req.results_directory, "integrated.ply")
+  o3d.io.write_triangle_mesh(mesh_filepath, mesh, False, True)
 
   if (req.archive_directory != ""):
     rospy.loginfo(rospy.get_caller_id() + ": Archiving data to " + req.archive_directory)
     archiveData(req.archive_directory)
-    mesh_name = join(req.archive_directory, "integrated.ply")
-    o3d.io.write_triangle_mesh(mesh_name, mesh, False, True)
+    archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
+    o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
 
-  return StopYakReconstructionResponse(True,'')
+  return StopYakReconstructionResponse(True, mesh_filepath)
 
 
 def cameraCallback(depth_image_msg, rgb_image_msg):
