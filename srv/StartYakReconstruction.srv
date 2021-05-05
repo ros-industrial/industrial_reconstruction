@@ -1,6 +1,8 @@
 # The settings below are only required if enable_tracking is set to true
 string tracking_frame # The frame to be tracked
 string relative_frame # The frame to recored the tracked_frame pose relative to
+float32 translation_distance # The minimum translation distance in meters required before recording another image
+float32 rotational_distance # The minimum rotational distance required before recording another image
 
 open3d_interface/TSDFVolumeParams tsdf_params
 open3d_interface/RGBDImageParams rgbd_params

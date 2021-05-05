@@ -8,6 +8,8 @@ import rospy
 import tf
 import open3d as o3d
 import numpy as np
+
+from pyquaternion import Quaternion
 from collections import deque
 from os import makedirs, listdir
 from os.path import exists, join, isfile
@@ -31,6 +33,8 @@ tsdf_volume = None
 intrinsics = None
 tracking_frame = ''
 relative_frame = ''
+translation_distance = 0.05 # 5cm
+rotational_distance = 0.01 # Quaternion Distance
 
 ####################################################################
 # See Open3d function create_from_color_and_depth for more details #
@@ -47,6 +51,8 @@ sensor_data = deque()
 color_images = []
 depth_images = []
 rgb_poses = []
+prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
+prev_pose_tran = np.array([0.0, 0.0, 0.0])
 
 record = False
 frame_count = 0
@@ -75,12 +81,16 @@ def startYakReconstructionCallback(req):
   global record, frame_count, processed_frame_count, relative_frame, tracking_frame
   global color_images, depth_images, rgb_poses, sensor_data, tsdf_volume
   global depth_scale, depth_trunc, convert_rgb_to_intensity
+  global prev_pose_rot, prev_pose_tran, translation_distance, rotational_distance
+
   rospy.loginfo(rospy.get_caller_id() + ": Start Reconstruction")
 
   color_images.clear()
   depth_images.clear()
   rgb_poses.clear()
   sensor_data.clear()
+  prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
+  prev_pose_tran = np.array([0.0, 0.0, 0.0])
 
   frame_count = 0
   processed_frame_count = 0
@@ -95,7 +105,8 @@ def startYakReconstructionCallback(req):
   convert_rgb_to_intensity = req.rgbd_params.convert_rgb_to_intensity
   tracking_frame = req.tracking_frame
   relative_frame = req.relative_frame
-
+  translation_distance = req.translation_distance
+  rotational_distance = req.rotational_distance
 
   record = True
   return StartYakReconstructionResponse(True)
@@ -124,7 +135,7 @@ def stopYakReconstructionCallback(req):
 
 def cameraCallback(depth_image_msg, rgb_image_msg):
   global frame_count, processed_frame_count, record, tracking_frame, relative_frame, tf_listener
-  global color_images, depth_images, rgb_poses, intrinsics
+  global color_images, depth_images, rgb_poses, intrinsics, prev_pose_rot, prev_pose_tran
 
   if record:
     try:
@@ -143,16 +154,25 @@ def cameraCallback(depth_image_msg, rgb_image_msg):
         if (frame_count > 30):
           data = sensor_data.popleft()
           (rgb_t,rgb_r) = tf_listener.lookupTransform(relative_frame, tracking_frame, data[2])
-          rgb_pose = tf.transformations.quaternion_matrix(rgb_r)
-          rgb_pose[0,3] = rgb_t[0]
-          rgb_pose[1,3] = rgb_t[1]
-          rgb_pose[2,3] = rgb_t[2]
+          rgb_t = np.array(rgb_t)
+          rgb_r = np.array(rgb_r)
 
-          depth_images.append(data[0])
-          color_images.append(data[1])
-          rgb_poses.append(rgb_pose)
+          tran_dist = np.linalg.norm(rgb_t - prev_pose_tran)
+          rot_dist = Quaternion.absolute_distance(Quaternion(prev_pose_rot), Quaternion(rgb_r))
 
-          processed_frame_count += 1
+          if (tran_dist > translation_distance) or (rot_dist > rotational_distance):
+            prev_pose_tran = rgb_t
+            prev_pose_rot = rgb_r
+            rgb_pose = tf.transformations.quaternion_matrix(rgb_r)
+            rgb_pose[0,3] = rgb_t[0]
+            rgb_pose[1,3] = rgb_t[1]
+            rgb_pose[2,3] = rgb_t[2]
+
+            depth_images.append(data[0])
+            color_images.append(data[1])
+            rgb_poses.append(rgb_pose)
+
+            processed_frame_count += 1
 
         frame_count += 1
 
