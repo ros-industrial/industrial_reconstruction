@@ -11,9 +11,9 @@ from os.path import exists, join
 from sensor_msgs.msg import Image, CameraInfo
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from open3d_interface.utility.file import make_clean_folder, write_pose
-from open3d_interface.srv import StartRecording, StopRecording, ReconstructSurface
+from open3d_interface.srv import StartRecording, StopRecording
 from open3d_interface.srv import StartRecordingResponse, StopRecordingResponse
-from open3d_interface.utility.ros import reconstructSystemCallback, save_camera_info_intrinsic_as_json
+from open3d_interface.utility.ros import save_camera_info_intrinsic_as_json
 
 # ROS Image message -> OpenCV2 image converter
 from cv_bridge import CvBridge, CvBridgeError
@@ -41,7 +41,7 @@ tacking_frame_count = 0
 def startRecordingCallback(req):
   global record, enable_tracking, relative_frame, tracking_frame, tacking_frame_count, path_output, path_depth, path_color, path_pose, frame_count, sensor_data
 
-  rospy.loginfo(rospy.get_caller_id() + "Start Recording")
+  rospy.loginfo(rospy.get_caller_id() + ": Start Recording")
 
   enable_tracking = req.enable_tracking
 
@@ -68,7 +68,7 @@ def startRecordingCallback(req):
 
 def stopRecordingCallback(req):
   global record
-  rospy.loginfo(rospy.get_caller_id() + "Stop Recording")
+  rospy.loginfo(rospy.get_caller_id() + ": Stop Recording")
   record = False
   return StopRecordingResponse(True)
 
@@ -107,8 +107,8 @@ def cameraCallback(depth_image_msg, rgb_image_msg):
             tacking_frame_count += 1
         else:
           # Save your OpenCV2 image as a jpeg
-          cv2.imwrite("%s/%06d.png" % (path_depth, frame_count), data[0])
-          cv2.imwrite("%s/%06d.jpg" % (path_color, frame_count), data[1])
+          cv2.imwrite("%s/%06d.png" % (path_depth, frame_count), cv2_depth_img)
+          cv2.imwrite("%s/%06d.jpg" % (path_color, frame_count), cv2_rgb_img)
 
         frame_count += 1
 
@@ -120,21 +120,24 @@ def main():
   # Create TF listener
   tf_listener = tf.TransformListener(rospy.Duration(500))
 
-  # TODO: Make these ros parameters
-  depth_image_topic = '/camera/aligned_depth_to_color/image_raw'
-  rgb_image_topic = '/camera/color/image_rect_color'
-  camera_info_topic = '/camera/color/camera_info'
-  cache_count = 10
-  slop = 0.01 # The delay (in seconds) with which messages can be synchronized.
+  # Get parameters
+  depth_image_topic = rospy.get_param('~depth_image_topic')
+  color_image_topic = rospy.get_param('~color_image_topic')
+  camera_info_topic = rospy.get_param('~camera_info_topic')
+  cache_count = rospy.get_param('~cache_count', 10)
+  slop = rospy.get_param('~slop', 0.01) # The delay (in seconds) with which messages can be synchronized.
   allow_headerless = False #allow storing headerless messages with current ROS time instead of timestamp
 
+  rospy.loginfo(rospy.get_caller_id() + ": depth_image_topic - " + depth_image_topic)
+  rospy.loginfo(rospy.get_caller_id() + ": color_image_topic - " + color_image_topic)
+  rospy.loginfo(rospy.get_caller_id() + ": camera_info_topic - " + camera_info_topic)
+
   depth_sub = Subscriber(depth_image_topic, Image)
-  rgb_sub = Subscriber(rgb_image_topic, Image)
+  rgb_sub = Subscriber(color_image_topic, Image)
   tss = ApproximateTimeSynchronizer([depth_sub, rgb_sub], cache_count, slop, allow_headerless)
   tss.registerCallback(cameraCallback)
 
   start_server = rospy.Service('start_recording', StartRecording, startRecordingCallback)
   stop_server = rospy.Service('stop_recording', StopRecording, stopRecordingCallback)
-  stop_server = rospy.Service('reconstruct', ReconstructSurface, reconstructSystemCallback)
 
   rospy.spin()

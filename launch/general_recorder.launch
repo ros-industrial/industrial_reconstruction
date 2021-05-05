@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="depth_image_topic"/>
+  <arg name="color_image_topic"/>
+  <arg name="camera_info_topic"/>
+  <arg name="cache_count" default="10"/>
+  <arg name="slop" default="0.01"/>
+
+  <node pkg="open3d_interface" type="open3d_general_recorder" name="open3d_general_recorder" output="screen">
+    <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)"/>
+    <param name="color_image_topic" type="string" value="$(arg color_image_topic)"/>
+    <param name="camera_info_topic" type="string" value="$(arg camera_info_topic)"/>
+    <param name="cache_count" type="double" value="$(arg cache_count)"/>
+    <param name="slop" type="double" value="$(arg slop)"/>
+  </node>
+
+</launch>

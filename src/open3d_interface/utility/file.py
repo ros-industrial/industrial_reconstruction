@@ -154,3 +154,19 @@ def extract_rgbd_frames(rgbd_video_file):
         intr = json.load(intr_file)
     depth_scale = intr["depth_scale"]
     return frames_folder, path_intrinsic, depth_scale
+
+def save_intrinsic_as_json(filename, intrinsics):
+    with open(filename, 'w') as outfile:
+        obj = json.dump(
+            {
+                'width':
+                    intrinsics.width,
+                'height':
+                    intrinsics.height,
+                'intrinsic_matrix': [
+                    intrinsics.intrinsic_matrix[0,0], 0, 0, 0, intrinsics.intrinsic_matrix[1,1], 0, intrinsics.intrinsic_matrix[0,2],
+                    intrinsics.intrinsic_matrix[1,2], 1
+                ]
+            },
+            outfile,
+            indent=4)

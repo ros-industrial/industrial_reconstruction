@@ -1,0 +1,9 @@
+# The settings below are only required if enable_tracking is set to true
+string tracking_frame # The frame to be tracked
+string relative_frame # The frame to recored the tracked_frame pose relative to
+
+open3d_interface/TSDFVolumeParams tsdf_params
+open3d_interface/RGBDImageParams rgbd_params
+
+---
+bool success

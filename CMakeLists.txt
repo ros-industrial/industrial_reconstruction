@@ -13,13 +13,24 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_python_setup()
 
+add_message_files(
+  DIRECTORY msg
+  FILES
+    ComputeRGBDOdometryParams.msg
+    GlobalOptimizationParams.msg
+    RGBDImageParams.msg
+    TSDFVolumeParams.msg
+)
+
 add_service_files(
   DIRECTORY srv
   FILES
     StartRecording.srv
     StopRecording.srv
-    ReconstructSurface.srv
-    ReconstructTSDFSurface.srv
+    RunReconstructionSystem.srv
+    RunTSDFReconstruction.srv
+    StartYakReconstruction.srv
+    StopYakReconstruction.srv
 )
 
 generate_messages(
@@ -34,5 +45,16 @@ catkin_package(
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-install(PROGRAMS scripts/open3d_general_recorder DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-install(PROGRAMS scripts/open3d_realsense_recorder DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(
+  DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(
+  PROGRAMS
+    scripts/open3d_general_recorder
+    scripts/open3d_realsense_recorder
+    scripts/open3d_reconstruction
+    scripts/open3d_yak
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
