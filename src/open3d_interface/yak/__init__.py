@@ -66,6 +66,7 @@ processed_frame_count = 0
 reconstructed_frame_count = 0
 
 
+
 def archiveData(path_output):
   global depth_images, color_images, rgb_poses, intrinsics
   path_depth = join(path_output, "depth")
@@ -264,7 +265,6 @@ def main():
   rospy.Timer(rospy.Duration(0.5), timerReconstruction)
 
   mesh_pub = rospy.Publisher("open3d_mesh", Marker, queue_size=10)
-
   start_server = rospy.Service('start_reconstruction', StartYakReconstruction, startYakReconstructionCallback)
   stop_server = rospy.Service('stop_reconstruction', StopYakReconstruction, stopYakReconstructionCallback)
 
