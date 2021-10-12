@@ -1,0 +1,7 @@
+open3d_yak:
+  ros__parameters:
+    depth_image_topic: "/camera/depth_registered/image"
+    color_image_topic: "/camera/rgb/image_rect_color"
+    camera_info_topic: "/camera/rgb/camera_info"
+    cache_count: 10
+    slop: 0.01

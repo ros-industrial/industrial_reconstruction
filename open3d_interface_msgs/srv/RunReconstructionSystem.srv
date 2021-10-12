@@ -6,7 +6,7 @@ bool debug_mode # false
 
 # Stages to run
 bool make      # Step 1) make fragments from RGBD sequence
-bool register  # Step 2) register all fragments to detect loop closure"
+bool register_fragments  # Step 2) register all fragments to detect loop closure"
 bool refine    # Step 3) refine rough registrations
 bool integrate # Step 4) integrate the whole RGBD sequence to make final mesh
 

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>open3d_interface_msgs</name>
+  <version>0.0.0</version>
+  <description>A collection of ROS interfaces for Open3D</description>
+
+  <author email="levi.armstrong@swri.org">Levi Armstrong</author>
+  <maintainer email="levi.armstrong@swri.org">Levi Armstrong</maintainer>
+  <license>Apache2</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+
+</package>

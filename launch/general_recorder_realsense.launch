@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <include file="$(find open3d_interface)/launch/general_recorder.launch">
-    <arg name="depth_image_topic" value="/camera/aligned_depth_to_color/image_raw"/>
-    <arg name="color_image_topic" value="/camera/color/image_rect_color"/>
-    <arg name="camera_info_topic" value="/camera/color/camera_info"/>
-  </include>
-</launch>

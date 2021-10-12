@@ -3,10 +3,10 @@ string path_intrinsic # The path to camera_intrinsic.json which is usually in th
 bool global_optimization # True
 bool debug_mode # false
 
-open3d_interface/TSDFVolumeParams tsdf_params
-open3d_interface/RGBDImageParams rgbd_params
-open3d_interface/GlobalOptimizationParams global_opt_params
-open3d_interface/ComputeRGBDOdometryParams compute_rgbd_odometry_params
+open3d_interface_msgs/TSDFVolumeParams tsdf_params
+open3d_interface_msgs/RGBDImageParams rgbd_params
+open3d_interface_msgs/GlobalOptimizationParams global_opt_params
+open3d_interface_msgs/ComputeRGBDOdometryParams compute_rgbd_odometry_params
 
 ---
 bool success

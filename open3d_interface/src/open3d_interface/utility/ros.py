@@ -18,8 +18,8 @@ def save_camera_info_intrinsic_as_json(filename, camera_info_msg):
                 'height':
                     camera_info_msg.height,
                 'intrinsic_matrix': [
-                    camera_info_msg.K[0], 0, 0, 0, camera_info_msg.K[4], 0, camera_info_msg.K[2],
-                    camera_info_msg.K[5], 1
+                    camera_info_msg.k[0], 0, 0, 0, camera_info_msg.k[4], 0, camera_info_msg.k[2],
+                    camera_info_msg.k[5], 1
                 ]
             },
             outfile,
@@ -27,7 +27,16 @@ def save_camera_info_intrinsic_as_json(filename, camera_info_msg):
 
 
 def getIntrinsicsFromMsg(camera_info_msg):
-  return o3d.camera.PinholeCameraIntrinsic(camera_info_msg.width, camera_info_msg.height, camera_info_msg.K[0], camera_info_msg.K[4], camera_info_msg.K[2], camera_info_msg.K[5])
+  return o3d.camera.PinholeCameraIntrinsic(camera_info_msg.width, camera_info_msg.height, camera_info_msg.k[0], camera_info_msg.k[4], camera_info_msg.k[2], camera_info_msg.k[5])
+
+
+def transformStampedToVectors(gm_tf_stamped):
+    vec_t = gm_tf_stamped.transform.translation
+    vec_q = gm_tf_stamped.transform.rotation
+    translation = np.array([vec_t.x, vec_t.y, vec_t.z])
+    quaternion = np.array([vec_q.w, vec_q.x, vec_q.y, vec_q.z])
+    return translation, quaternion
+
 
 def meshToRos(mesh):
     triangles = np.asarray(mesh.triangles)
@@ -40,13 +49,13 @@ def meshToRos(mesh):
     out_msg.scale.x = 1.0
     out_msg.scale.y = 1.0
     out_msg.scale.z = 1.0
-    out_msg.pose.position.x = 0
-    out_msg.pose.position.y = 0
-    out_msg.pose.position.z = 0
-    out_msg.pose.orientation.w = 1
-    out_msg.pose.orientation.x = 0
-    out_msg.pose.orientation.y = 0
-    out_msg.pose.orientation.z = 0
+    out_msg.pose.position.x = 0.0
+    out_msg.pose.position.y = 0.0
+    out_msg.pose.position.z = 0.0
+    out_msg.pose.orientation.w = 1.0
+    out_msg.pose.orientation.x = 0.0
+    out_msg.pose.orientation.y = 0.0
+    out_msg.pose.orientation.z = 0.0
     for triangle in triangles:
         for vertex_index in triangle:
             curr_point = Point()
@@ -57,7 +66,7 @@ def meshToRos(mesh):
             curr_point_color.r = vertex_colors[vertex_index][2]
             curr_point_color.g = vertex_colors[vertex_index][1]
             curr_point_color.b = vertex_colors[vertex_index][0]
-            curr_point_color.a = 1
+            curr_point_color.a = 1.0
             out_msg.points.append(curr_point)
             out_msg.colors.append(curr_point_color)
     return out_msg
