@@ -227,8 +227,9 @@ class Open3dYak(Node):
                     data = self.sensor_data.popleft()
                     try:
                         gm_tf_stamped = self.buffer.lookup_transform(self.relative_frame, self.tracking_frame, data[2])
-                    except:
-                        self.get_logger().error("Failed to get transform")
+                    except Exception as e:
+                        self.get_logger().error("Failed to get transform: " + str(e))
+
                         return
                     rgb_t, rgb_r = transformStampedToVectors(gm_tf_stamped)
                     rgb_r_quat = Quaternion(rgb_r)
