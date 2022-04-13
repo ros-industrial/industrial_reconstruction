@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="depth_image_topic"/>
+  <arg name="color_image_topic"/>
+  <arg name="camera_info_topic"/>
+  <arg name="relative_frame"/>
+  <arg name="tracking_frame"/>
+  <arg name="image_directory"/>
+  <arg name="pub_rate"/>
+
+  <node pkg="open3d_interface" exec="open3d_archive_player" name="open3d_archive_player" output="screen">
+    <param name="depth_image_topic" value="$(var depth_image_topic)"/>
+    <param name="color_image_topic" value="$(var color_image_topic)"/>
+    <param name="camera_info_topic" value="$(var camera_info_topic)"/>
+    <param name="relative_frame" value="$(var relative_frame)"/>
+    <param name="tracking_frame" value="$(var tracking_frame)"/>
+    <param name="image_directory" value="$(var image_directory)"/>
+    <param name="pub_rate" value="$(var pub_rate)"/>
+  </node>
+
+</launch>

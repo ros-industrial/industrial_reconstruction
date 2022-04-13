@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="depth_image_topic" default="/sim_camera/depth_image"/>
+  <arg name="color_image_topic" default="/sim_camera/color_image"/>
+  <arg name="camera_info_topic" default="/sim_camera/camera_info"/>
+  <arg name="relative_frame" default="/world"/>
+  <arg name="tracking_frame" default="/sim_camera"/>
+  <arg name="image_directory"/>
+  <arg name="pub_rate" default="20"/>
+  <arg name="cache_count" default="10"/>
+  <arg name="slop" default="0.01"/>
+  <arg name="rviz" default="false"/>
+
+  <include file="$(find-pkg-share open3d_interface)/launch/archive_player.launch.xml">
+    <arg name="depth_image_topic" value="$(var depth_image_topic)"/>
+    <arg name="color_image_topic" value="$(var color_image_topic)"/>
+    <arg name="camera_info_topic" value="$(var camera_info_topic)"/>
+    <arg name="relative_frame" value="$(var relative_frame)"/>
+    <arg name="tracking_frame" value="$(var tracking_frame)"/>
+    <arg name="image_directory" value="$(var image_directory)"/>
+    <arg name="pub_rate" value="$(var pub_rate)"/>
+  </include>
+
+  <include file="$(find-pkg-share open3d_interface)/launch/yak.launch.xml">
+    <arg name="depth_image_topic" value="$(var depth_image_topic)"/>
+    <arg name="color_image_topic" value="$(var color_image_topic)"/>
+    <arg name="camera_info_topic" value="$(var camera_info_topic)"/>
+    <arg name="cache_count" value="$(var cache_count)"/>
+    <arg name="slop" value="$(var slop)"/>
+  </include>
+
+  <group if="$(var rviz)">
+   <node pkg="rviz2" exec="rviz2" args="-d $(find-pkg-share open3d_interface)/config/open3d_config.rviz"/>
+  </group>
+
+
+</launch>
