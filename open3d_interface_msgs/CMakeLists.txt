@@ -15,16 +15,10 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 set(msg_files
-    "msg/ComputeRGBDOdometryParams.msg"
-    "msg/GlobalOptimizationParams.msg"
     "msg/RGBDImageParams.msg"
     "msg/TSDFVolumeParams.msg")
 
 set(srv_files
-    "srv/StartRecording.srv"
-    "srv/StopRecording.srv"
-    "srv/RunReconstructionSystem.srv"
-    "srv/RunTSDFReconstruction.srv"
     "srv/StartYakReconstruction.srv"
     "srv/StopYakReconstruction.srv")
 
