@@ -62,3 +62,47 @@ ___
  - **convert_rgb_to_intensity:** Allows for using float type intensity if using grayscale as well. Usually set this to `false` unless you have a specific reason to do otherwise
   
 For more info see the [Open3D documentation on RGBD Integration](http://www.open3d.org/docs/0.12.0/tutorial/pipelines/rgbd_integration.html).
+
+---
+## Running on archived data
+
+Launch script to bringup main reconstruction node and archive player
+```
+ros2 launch open3d_interface sim_from_archive.launch.xml image_directory:=</path/to/archived/data> rviz:=true
+```
+
+Call service to start publishing data by parsing through archived camera info, poses, color images, and depth images
+```
+ros2 service call /start_publishing std_srvs/srv/Trigger
+```
+
+Call service to start reconstruction
+```
+ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartYakReconstruction "tracking_frame: 'sim_camera'
+relative_frame: 'world'
+translation_distance: 0.0
+rotational_distance: 0.0
+live: true
+tsdf_params:
+  voxel_length: 0.02
+  sdf_trunc: 0.04
+  min_box_values: {x: 0.05, y: 0.25, z: 0.1}
+  max_box_values: {x: 7.0, y: 3.0, z: 1.2}
+rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: false}"
+```
+
+Call service to stop reconstruction
+```
+ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopYakReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/new_archive'
+results_directory: '/home/ros-industrial/open3d_archive/results'"
+```
+
+Call service to stop publishing data
+```
+ros2 service call /stop_publishing std_srvs/srv/Trigger
+```
+
+Optionally restart back at the beginning of the data set (The node will automatically cycle back to the first data point and continue forever without intervention)
+```
+ros2 service call /restart_publishing std_srvs/srv/Trigger
+```
