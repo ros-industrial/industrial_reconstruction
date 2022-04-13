@@ -12,9 +12,7 @@ from tf2_msgs.msg import TFMessage
 
 
 # ROS Image message -> OpenCV2 image converter
-from cv_bridge import CvBridge, CvBridgeError
-# OpenCV2 for saving an image
-import cv2
+from cv_bridge import CvBridge
 
 def read_pose(filename):
     f = open(filename, "r")
@@ -33,8 +31,6 @@ class Open3dTestPublisher(Node):
         self.declare_parameter("tracking_frame")
         self.declare_parameter("image_directory")
         self.declare_parameter("pub_rate")
-
-        # param_list = [parameter for parameter in self._parameters.values()]
 
         try:
             self.depth_image_topic = str(self.get_parameter('depth_image_topic').value)
@@ -83,7 +79,6 @@ class Open3dTestPublisher(Node):
         intrinsic = o3d.io.read_pinhole_camera_intrinsic(camera_intrinsic_fp)
 
         self.camera_intrinsic_msg = CameraInfo()
-        # self.camera_intrinsic_msg.header.seq = 0
         self.camera_intrinsic_msg.header.stamp = self.get_clock().now().to_msg()
         self.camera_intrinsic_msg.header.frame_id = self.pose_track_frame
         self.camera_intrinsic_msg.height = intrinsic.height
@@ -160,14 +155,11 @@ class Open3dTestPublisher(Node):
             self.tfmsg.transforms[0].transform.rotation.z = quat[2]
             self.publisher_tf.publish(self.tfmsg)
 
-            print("Current index:", self.current_index)
             self.camera_intrinsic_msg.header.stamp = curr_time
             self.camera_info_pub.publish(self.camera_intrinsic_msg)
-            image_message_color = Image()
             image_message_color = self.bridge.cv2_to_imgmsg(np.asarray(color_img), encoding='rgb8')
             image_message_color.header.stamp = curr_time
             image_message_color.header.frame_id = self.pose_track_frame
-            image_message_depth = Image()
             image_message_depth = self.bridge.cv2_to_imgmsg(np.asarray(depth_img), encoding='16UC1')
             image_message_depth.header.stamp = curr_time
             image_message_depth.header.frame_id = self.pose_track_frame

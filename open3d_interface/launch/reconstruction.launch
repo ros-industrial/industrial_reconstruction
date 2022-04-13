@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <node pkg="open3d_interface" type="open3d_reconstruction" name="open3d_reconstruction" output="screen"/>
-
-</launch>
