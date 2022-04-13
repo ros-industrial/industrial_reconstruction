@@ -63,9 +63,9 @@ def meshToRos(mesh):
             curr_point.y = vertices[vertex_index][1]
             curr_point.z = vertices[vertex_index][2]
             curr_point_color = ColorRGBA()
-            curr_point_color.r = vertex_colors[vertex_index][2]
+            curr_point_color.r = vertex_colors[vertex_index][0]
             curr_point_color.g = vertex_colors[vertex_index][1]
-            curr_point_color.b = vertex_colors[vertex_index][0]
+            curr_point_color.b = vertex_colors[vertex_index][2]
             curr_point_color.a = 1.0
             out_msg.points.append(curr_point)
             out_msg.colors.append(curr_point_color)

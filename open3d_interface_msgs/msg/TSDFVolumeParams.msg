@@ -7,3 +7,5 @@
 float32 voxel_length # Recommended default: 0.01
 # Specifies the truncation value for the signed distance function (SDF)
 float32 sdf_trunc # Recommended default: 0.04
+geometry_msgs/Vector3 min_box_values
+geometry_msgs/Vector3 max_box_values

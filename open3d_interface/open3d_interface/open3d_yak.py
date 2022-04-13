@@ -9,6 +9,8 @@ from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
 import open3d as o3d
 import numpy as np
+import time
+import datetime
 
 from ament_index_python.packages import get_package_share_directory
 pkg_share_dir = get_package_share_directory('open3d_interface')
@@ -30,7 +32,6 @@ from utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVecto
 # ROS Image message -> OpenCV2 image converter
 from cv_bridge import CvBridge, CvBridgeError
 # OpenCV2 for saving an image
-import cv2
 from visualization_msgs.msg import Marker
 
 
@@ -47,6 +48,9 @@ class Open3dYak(Node):
 
         self.tsdf_volume = None
         self.intrinsics = None
+        self.crop_box = None
+        self.crop_mesh = False
+        self.crop_box_msg = Marker()
         self.tracking_frame = ''
         self.relative_frame = ''
         self.translation_distance = 0.05  # 5cm
@@ -74,6 +78,7 @@ class Open3dYak(Node):
         self.integration_done = True
         self.live_integration = False
         self.mesh_pub = None
+        self.tsdf_volume_pub = None
 
         self.record = False
         self.frame_count = 0
@@ -120,14 +125,14 @@ class Open3dYak(Node):
 
         self.info_sub = self.create_subscription(CameraInfo, self.camera_info_topic, self.cameraInfoCallback, 10)
 
-        self.timer = self.create_timer(0.5, self.timerReconstruction)
-
         self.mesh_pub = self.create_publisher(Marker, "open3d_mesh", 10)
 
         self.start_server = self.create_service(StartYakReconstruction, 'start_reconstruction',
                                                 self.startYakReconstructionCallback)
         self.stop_server = self.create_service(StopYakReconstruction, 'stop_reconstruction',
                                                self.stopYakReconstructionCallback)
+
+        self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", 10)
 
     def archiveData(self, path_output):
         path_depth = join(path_output, "depth")
@@ -157,6 +162,39 @@ class Open3dYak(Node):
         self.tsdf_integration_data.clear()
         self.prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
         self.prev_pose_tran = np.array([0.0, 0.0, 0.0])
+
+        if (req.tsdf_params.min_box_values.x == req.tsdf_params.max_box_values.x and
+                req.tsdf_params.min_box_values.y == req.tsdf_params.max_box_values.y and
+                req.tsdf_params.min_box_values.z == req.tsdf_params.max_box_values.z):
+            crop_mesh = False
+        else:
+            crop_mesh = True
+            min_bound = np.asarray(
+                [req.tsdf_params.min_box_values.x, req.tsdf_params.min_box_values.y, req.tsdf_params.min_box_values.z])
+            max_bound = np.asarray(
+                [req.tsdf_params.max_box_values.x, req.tsdf_params.max_box_values.y, req.tsdf_params.max_box_values.z])
+            crop_box = o3d.geometry.AxisAlignedBoundingBox(min_bound, max_bound)
+
+            self.crop_box_msg.type = self.crop_box_msg.CUBE
+            self.crop_box_msg.action = self.crop_box_msg.ADD
+            self.crop_box_msg.id = 1
+            self.crop_box_msg.scale.x = max_bound[0] - min_bound[0]
+            self.crop_box_msg.scale.y = max_bound[1] - min_bound[1]
+            self.crop_box_msg.scale.z = max_bound[2] - min_bound[2]
+            self.crop_box_msg.pose.position.x = (min_bound[0] + max_bound[0]) / 2.0
+            self.crop_box_msg.pose.position.y = (min_bound[1] + max_bound[1]) / 2.0
+            self.crop_box_msg.pose.position.z = (min_bound[2] + max_bound[2]) / 2.0
+            self.crop_box_msg.pose.orientation.w = 1.0
+            self.crop_box_msg.pose.orientation.x = 0.0
+            self.crop_box_msg.pose.orientation.y = 0.0
+            self.crop_box_msg.pose.orientation.z = 0.0
+            self.crop_box_msg.color.r = 1.0
+            self.crop_box_msg.color.g = 0.0
+            self.crop_box_msg.color.b = 0.0
+            self.crop_box_msg.color.a = 0.25
+            self.crop_box_msg.header.frame_id = req.relative_frame
+
+            self.tsdf_volume_pub.publish(self.crop_box_msg)
 
         self.frame_count = 0
         self.processed_frame_count = 0
@@ -189,11 +227,23 @@ class Open3dYak(Node):
             self.create_rate(1).sleep()
 
         print("Generating mesh")
+        if not self.live_integration:
+            while len(self.tsdf_integration_data) > 0:
+                data = self.tsdf_integration_data.popleft()
+                rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale, self.depth_trunc,
+                                                                          False)
+                self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(data[2]))
         mesh = self.tsdf_volume.extract_triangle_mesh()
         mesh.compute_vertex_normals()
+
+        if self.crop_mesh:
+            cropped_mesh = mesh.crop(self.crop_box)
+        else:
+            cropped_mesh = mesh
+
         mesh_filepath = join(req.results_directory, "integrated.ply")
-        o3d.io.write_triangle_mesh(mesh_filepath, mesh, False, True)
-        mesh_msg = meshToRos(mesh)
+        o3d.io.write_triangle_mesh(mesh_filepath, cropped_mesh, False, True)
+        mesh_msg = meshToRos(cropped_mesh)
         mesh_msg.header.stamp = self.get_clock().now().to_msg()
         mesh_msg.header.frame_id = self.relative_frame
         self.mesh_pub.publish(mesh_msg)
@@ -216,7 +266,7 @@ class Open3dYak(Node):
                 # Convert your ROS Image message to OpenCV2
                 # TODO: Generalize image type
                 cv2_depth_img = self.bridge.imgmsg_to_cv2(depth_image_msg, "16UC1")
-                cv2_rgb_img = self.bridge.imgmsg_to_cv2(rgb_image_msg, "bgr8")
+                cv2_rgb_img = self.bridge.imgmsg_to_cv2(rgb_image_msg, rgb_image_msg.encoding)
             except CvBridgeError:
                 self.get_logger().error("Error converting ros msg to cv img")
                 return
@@ -257,7 +307,11 @@ class Open3dYak(Node):
                             self.integration_done = True
                             if self.processed_frame_count % 50 == 0:
                                 mesh = self.tsdf_volume.extract_triangle_mesh()
-                                mesh_msg = meshToRos(mesh)
+                                if self.crop_mesh:
+                                    cropped_mesh = mesh.crop(self.crop_box)
+                                else:
+                                    cropped_mesh = mesh
+                                mesh_msg = meshToRos(cropped_mesh)
                                 mesh_msg.header.stamp = self.get_clock().now().to_msg()
                                 mesh_msg.header.frame_id = self.relative_frame
                                 self.mesh_pub.publish(mesh_msg)
@@ -269,26 +323,6 @@ class Open3dYak(Node):
 
     def cameraInfoCallback(self, camera_info):
         self.intrinsics = getIntrinsicsFromMsg(camera_info)
-
-    def timerReconstruction(self):
-        self.integrating_queue = False
-        while len(self.tsdf_integration_data) > 0:
-            self.integrating_queue = True
-            print("Integrating,", len(self.tsdf_integration_data), "images left to integrate")
-            self.integration_done = False
-            data = self.tsdf_integration_data.popleft()
-            rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale, self.depth_trunc, False)
-            self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(data[2]))
-            self.reconstructed_frame_count += 1
-            if self.reconstructed_frame_count % 150 == 0:
-                mesh = self.tsdf_volume.extract_triangle_mesh()
-                mesh_msg = meshToRos(mesh)
-                mesh_msg.header.stamp = self.get_clock().now().to_msg()
-                mesh_msg.header.frame_id = self.relative_frame
-                self.mesh_pub.publish(mesh_msg)
-        if self.integrating_queue:
-            print("Integration done")
-            self.integration_done = True
 
 
 def main(args=None):

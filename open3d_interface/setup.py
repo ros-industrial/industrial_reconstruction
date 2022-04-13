@@ -39,6 +39,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'open3d_archive_player = open3d_interface.open3d_archive_player:main',
             'open3d_reconstruction = open3d_interface.open3d_reconstruction:main',
             'open3d_general_recorder = open3d_interface.open3d_general_recorder:main',
             'open3d_realsense_recorder = open3d_interface.open3d_realsense_recorder:main',

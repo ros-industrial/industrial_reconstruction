@@ -1,0 +1,9 @@
+open3d_archive_player:
+  ros__parameters:
+    depth_image_topic: "/camera/depth_registered/image"
+    color_image_topic: "/camera/rgb/image_rect_color"
+    camera_info_topic: "/camera/rgb/camera_info"
+    relative_frame: "world"
+    tracking_frame: "camera"
+    image_directory: "/home/ros-industrial/ros2_workspaces/open3d/src/hatch_db"
+    pub_rate: 20

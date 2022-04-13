@@ -15,11 +15,11 @@
   <member_of_group>rosidl_interface_packages</member_of_group>
 
   <exec_depend>rclpy</exec_depend>
-  <exec_depend>message_runtime</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
