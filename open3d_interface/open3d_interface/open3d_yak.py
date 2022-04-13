@@ -9,8 +9,6 @@ from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
 import open3d as o3d
 import numpy as np
-import time
-import datetime
 
 from ament_index_python.packages import get_package_share_directory
 pkg_share_dir = get_package_share_directory('open3d_interface')
@@ -20,12 +18,10 @@ sys.path.append(pkg_share_dir + "/open3d_interface")
 
 from pyquaternion import Quaternion
 from collections import deque
-from os import makedirs, listdir
 from os.path import exists, join, isfile
 from sensor_msgs.msg import Image, CameraInfo
 from message_filters import ApproximateTimeSynchronizer, Subscriber
-# from open3d_interface.utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json
-from utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json
+from utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
 from open3d_interface_msgs.srv import StartYakReconstruction, StopYakReconstruction
 from utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVectors
 
@@ -139,7 +135,7 @@ class Open3dYak(Node):
         path_color = join(path_output, "color")
         path_pose = join(path_output, "pose")
 
-        make_clean_folder(path_output)
+        make_folder_keep_contents(path_output)
         make_clean_folder(path_depth)
         make_clean_folder(path_color)
         make_clean_folder(path_pose)
@@ -227,6 +223,9 @@ class Open3dYak(Node):
             self.create_rate(1).sleep()
 
         print("Generating mesh")
+        if self.tsdf_volume is None:
+            res.success = False
+            return res
         if not self.live_integration:
             while len(self.tsdf_integration_data) > 0:
                 data = self.tsdf_integration_data.popleft()
@@ -299,7 +298,7 @@ class Open3dYak(Node):
                         self.depth_images.append(data[0])
                         self.color_images.append(data[1])
                         self.rgb_poses.append(rgb_pose)
-                        if self.live_integration:
+                        if self.live_integration and self.tsdf_volume is not None:
                             self.integration_done = False
                             rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale,
                                                                                       self.depth_trunc, False)

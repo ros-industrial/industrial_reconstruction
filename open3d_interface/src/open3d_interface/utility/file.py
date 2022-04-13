@@ -65,6 +65,10 @@ def make_clean_folder(path_folder):
         shutil.rmtree(path_folder)
         makedirs(path_folder)
 
+def make_folder_keep_contents(path_folder):
+    if not exists(path_folder):
+        makedirs(path_folder)
+
 def check_folder_structure(path_dataset, has_tracking):
     if isfile(path_dataset) and path_dataset.endswith(".bag"):
         return
