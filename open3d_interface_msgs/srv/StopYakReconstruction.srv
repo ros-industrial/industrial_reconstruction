@@ -1,5 +1,4 @@
 string archive_directory # If not empty it will dump rgb, depth, poses and intrinsics to this directory
-string results_directory # The directory to save the generated mesh
+string mesh_filepath # The filepath to save the mesh at
 ---
 bool success
-string mesh_filepath # The filepath to the saved mesh

@@ -240,8 +240,7 @@ class Open3dYak(Node):
         else:
             cropped_mesh = mesh
 
-        mesh_filepath = join(req.results_directory, "integrated.ply")
-        o3d.io.write_triangle_mesh(mesh_filepath, cropped_mesh, False, True)
+        o3d.io.write_triangle_mesh(req.mesh_filepath, cropped_mesh, False, True)
         mesh_msg = meshToRos(cropped_mesh)
         mesh_msg.header.stamp = self.get_clock().now().to_msg()
         mesh_msg.header.frame_id = self.relative_frame
@@ -256,7 +255,6 @@ class Open3dYak(Node):
 
         self.get_logger().info("DONE")
         res.success = True
-        res.mesh_filepath = mesh_filepath
         return res
 
     def cameraCallback(self, depth_image_msg, rgb_image_msg):
