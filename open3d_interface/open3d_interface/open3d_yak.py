@@ -222,7 +222,7 @@ class Open3dYak(Node):
         while not self.integration_done:
             self.create_rate(1).sleep()
 
-        print("Generating mesh")
+        self.get_logger().info("Generating mesh")
         if self.tsdf_volume is None:
             res.success = False
             return res
@@ -245,7 +245,7 @@ class Open3dYak(Node):
         mesh_msg.header.stamp = self.get_clock().now().to_msg()
         mesh_msg.header.frame_id = self.relative_frame
         self.mesh_pub.publish(mesh_msg)
-        print("Mesh Generated")
+        self.get_logger().info("Mesh Saved to " + req.mesh_filepath)
 
         if (req.archive_directory != ""):
             self.get_logger().info("Archiving data to " + req.archive_directory)
@@ -285,7 +285,7 @@ class Open3dYak(Node):
                     rot_dist = Quaternion.absolute_distance(Quaternion(self.prev_pose_rot), rgb_r_quat)
 
                     # TODO: Testing if this is a good practice, min jump to accept data
-                    if (tran_dist > self.translation_distance) or (rot_dist > self.rotational_distance):
+                    if (tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance):
                         self.prev_pose_tran = rgb_t
                         self.prev_pose_rot = rgb_r
                         rgb_pose = rgb_r_quat.transformation_matrix
@@ -298,20 +298,24 @@ class Open3dYak(Node):
                         self.rgb_poses.append(rgb_pose)
                         if self.live_integration and self.tsdf_volume is not None:
                             self.integration_done = False
-                            rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale,
-                                                                                      self.depth_trunc, False)
-                            self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
-                            self.integration_done = True
-                            if self.processed_frame_count % 50 == 0:
-                                mesh = self.tsdf_volume.extract_triangle_mesh()
-                                if self.crop_mesh:
-                                    cropped_mesh = mesh.crop(self.crop_box)
-                                else:
-                                    cropped_mesh = mesh
-                                mesh_msg = meshToRos(cropped_mesh)
-                                mesh_msg.header.stamp = self.get_clock().now().to_msg()
-                                mesh_msg.header.frame_id = self.relative_frame
-                                self.mesh_pub.publish(mesh_msg)
+                            try:
+                                rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale,
+                                                                                          self.depth_trunc, False)
+                                self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
+                                self.integration_done = True
+                                if self.processed_frame_count % 50 == 0:
+                                    mesh = self.tsdf_volume.extract_triangle_mesh()
+                                    if self.crop_mesh:
+                                        cropped_mesh = mesh.crop(self.crop_box)
+                                    else:
+                                        cropped_mesh = mesh
+                                    mesh_msg = meshToRos(cropped_mesh)
+                                    mesh_msg.header.stamp = self.get_clock().now().to_msg()
+                                    mesh_msg.header.frame_id = self.relative_frame
+                                    self.mesh_pub.publish(mesh_msg)
+                            except:
+                                self.get_logger().error("Error processing images into tsdf")
+                                return
                         else:
                             self.tsdf_integration_data.append([data[0], data[1], rgb_pose])
                         self.processed_frame_count += 1
