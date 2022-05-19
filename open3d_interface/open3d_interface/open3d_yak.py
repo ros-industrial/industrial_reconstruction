@@ -162,14 +162,14 @@ class Open3dYak(Node):
         if (req.tsdf_params.min_box_values.x == req.tsdf_params.max_box_values.x and
                 req.tsdf_params.min_box_values.y == req.tsdf_params.max_box_values.y and
                 req.tsdf_params.min_box_values.z == req.tsdf_params.max_box_values.z):
-            crop_mesh = False
+            self.crop_mesh = False
         else:
-            crop_mesh = True
+            self.crop_mesh = True
             min_bound = np.asarray(
                 [req.tsdf_params.min_box_values.x, req.tsdf_params.min_box_values.y, req.tsdf_params.min_box_values.z])
             max_bound = np.asarray(
                 [req.tsdf_params.max_box_values.x, req.tsdf_params.max_box_values.y, req.tsdf_params.max_box_values.z])
-            crop_box = o3d.geometry.AxisAlignedBoundingBox(min_bound, max_bound)
+            self.crop_box = o3d.geometry.AxisAlignedBoundingBox(min_bound, max_bound)
 
             self.crop_box_msg.type = self.crop_box_msg.CUBE
             self.crop_box_msg.action = self.crop_box_msg.ADD
@@ -315,6 +315,7 @@ class Open3dYak(Node):
                                     self.mesh_pub.publish(mesh_msg)
                             except:
                                 self.get_logger().error("Error processing images into tsdf")
+                                self.integration_done = True
                                 return
                         else:
                             self.tsdf_integration_data.append([data[0], data[1], rgb_pose])
