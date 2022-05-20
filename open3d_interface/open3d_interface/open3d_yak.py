@@ -30,7 +30,12 @@ from cv_bridge import CvBridge, CvBridgeError
 # OpenCV2 for saving an image
 from visualization_msgs.msg import Marker
 
-
+def filterNormals(mesh, direction, angle):
+   mesh.compute_vertex_normals()
+   tri_normals = np.asarray(mesh.triangle_normals)
+   dot_prods = tri_normals @ direction
+   mesh.remove_triangles_by_mask(dot_prods < np.cos(angle))
+   return mesh
 
 class Open3dYak(Node):
 
@@ -240,6 +245,20 @@ class Open3dYak(Node):
         else:
             cropped_mesh = mesh
 
+        # Mesh filtering
+        for norm_filt in req.normal_filters:
+            dir = np.array([norm_filt.normal_direction.x, norm_filt.normal_direction.y, norm_filt.normal_direction.z]).reshape(3,1)
+            cropped_mesh = filterNormals(cropped_mesh, dir, np.radians(norm_filt.angle))
+
+        triangle_clusters, cluster_n_triangles, cluster_area = (cropped_mesh.cluster_connected_triangles())
+        triangle_clusters = np.asarray(triangle_clusters)
+        cluster_n_triangles = np.asarray(cluster_n_triangles)
+        cluster_area = np.asarray(cluster_area)
+        triangles_to_remove = cluster_n_triangles[triangle_clusters] < req.min_num_faces
+        cropped_mesh.remove_triangles_by_mask(triangles_to_remove)
+        cropped_mesh.remove_unreferenced_vertices()
+
+
         o3d.io.write_triangle_mesh(req.mesh_filepath, cropped_mesh, False, True)
         mesh_msg = meshToRos(cropped_mesh)
         mesh_msg.header.stamp = self.get_clock().now().to_msg()
@@ -303,6 +322,7 @@ class Open3dYak(Node):
                                                                                           self.depth_trunc, False)
                                 self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
                                 self.integration_done = True
+                                self.processed_frame_count += 1
                                 if self.processed_frame_count % 50 == 0:
                                     mesh = self.tsdf_volume.extract_triangle_mesh()
                                     if self.crop_mesh:
@@ -319,7 +339,7 @@ class Open3dYak(Node):
                                 return
                         else:
                             self.tsdf_integration_data.append([data[0], data[1], rgb_pose])
-                        self.processed_frame_count += 1
+                            self.processed_frame_count += 1
 
                 self.frame_count += 1
 

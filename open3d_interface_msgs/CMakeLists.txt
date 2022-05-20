@@ -16,7 +16,8 @@ find_package(geometry_msgs REQUIRED)
 
 set(msg_files
     "msg/RGBDImageParams.msg"
-    "msg/TSDFVolumeParams.msg")
+    "msg/TSDFVolumeParams.msg"
+    "msg/NormalFilterParams.msg")
 
 set(srv_files
     "srv/StartYakReconstruction.srv"
