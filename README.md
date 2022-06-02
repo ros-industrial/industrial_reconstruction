@@ -2,6 +2,10 @@
 
 A utility to create meshes using an RGB-D camera feed given known positions and parameters of the camera. This package makes heavy use of the python library [Open3D](https://github.com/isl-org/Open3D).
 
+<p align="center">
+<img src="https://user-images.githubusercontent.com/41449746/171745032-c915a431-0dbd-462d-9020-768ad63ff0f0.GIF" />
+</p>
+
 ## Setup
 
 1. Install Open3D
