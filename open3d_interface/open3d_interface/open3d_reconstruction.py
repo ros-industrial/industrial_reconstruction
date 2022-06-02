@@ -26,7 +26,7 @@ from os.path import exists, join, isfile
 from sensor_msgs.msg import Image, CameraInfo
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from src.open3d_interface.utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
-from open3d_interface_msgs.srv import StartYakReconstruction, StopYakReconstruction
+from open3d_interface_msgs.srv import StartReconstruction, StopReconstruction
 from src.open3d_interface.utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVectors
 
 # ROS Image message -> OpenCV2 image converter
@@ -41,10 +41,10 @@ def filterNormals(mesh, direction, angle):
    mesh.remove_triangles_by_mask(dot_prods < np.cos(angle))
    return mesh
 
-class Open3dYak(Node):
+class Open3dReconstruction(Node):
 
     def __init__(self):
-        super().__init__('open3d_yak')
+        super().__init__('open3d_reconstruction')
 
         self.bridge = CvBridge()
 
@@ -132,10 +132,10 @@ class Open3dYak(Node):
 
         self.mesh_pub = self.create_publisher(Marker, "open3d_mesh", 10)
 
-        self.start_server = self.create_service(StartYakReconstruction, 'start_reconstruction',
-                                                self.startYakReconstructionCallback)
-        self.stop_server = self.create_service(StopYakReconstruction, 'stop_reconstruction',
-                                               self.stopYakReconstructionCallback)
+        self.start_server = self.create_service(StartReconstruction, 'start_reconstruction',
+                                                self.startReconstructionCallback)
+        self.stop_server = self.create_service(StopReconstruction, 'stop_reconstruction',
+                                               self.stopReconstructionCallback)
 
         self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", 10)
 
@@ -157,7 +157,7 @@ class Open3dYak(Node):
             save_intrinsic_as_json(join(path_output, "camera_intrinsic.json"), self.intrinsics)
 
 
-    def startYakReconstructionCallback(self, req, res):
+    def startReconstructionCallback(self, req, res):
         self.get_logger().info(" Start Reconstruction")
 
         self.color_images.clear()
@@ -224,7 +224,7 @@ class Open3dYak(Node):
         res.success = True
         return res
 
-    def stopYakReconstructionCallback(self, req, res):
+    def stopReconstructionCallback(self, req, res):
         self.get_logger().info("Stop Reconstruction")
         self.record = False
 
@@ -353,7 +353,7 @@ class Open3dYak(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    open3d_yak = Open3dYak()
-    rclpy.spin(open3d_yak)
-    open3d_yak.destroy_node()
+    open3d_reconstruction = Open3dReconstruction()
+    rclpy.spin(open3d_reconstruction)
+    open3d_reconstruction.destroy_node()
     rclpy.shutdown()

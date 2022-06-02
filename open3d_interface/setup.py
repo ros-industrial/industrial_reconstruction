@@ -39,7 +39,7 @@ setup(
     entry_points={
         'console_scripts': [
             'open3d_archive_player = open3d_interface.open3d_archive_player:main',
-            'open3d_yak = open3d_interface.open3d_yak:main'
+            'open3d_reconstruction = open3d_interface.open3d_reconstruction:main'
         ],
     },
 )

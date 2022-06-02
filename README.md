@@ -16,12 +16,12 @@ A utility to create meshes using an RGB-D camera feed given known positions and 
 
 Launch reconstruction node
 ```
-ros2 launch open3d_interface yak.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
+ros2 launch open3d_interface reconstruction.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
 ```
 
 Call service to start reconstruction
 ```
-ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartYakReconstruction "tracking_frame: 'camera'
+ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartReconstruction "tracking_frame: 'camera'
 relative_frame: 'world'
 translation_distance: 0.0
 rotational_distance: 0.0
@@ -36,7 +36,7 @@ rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: 
 
 Call service to stop reconstruction
 ```
-ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopYakReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/archive'
+ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/archive'
 mesh_filepath: '/home/ros-industrial/open3d_archive/results_mesh.ply'
 normal_filters: [{ normal_direction: {x: 0.0, y: 0.0, z: 1.0}, angle: 90}]
 min_num_faces: 1000"
@@ -45,7 +45,7 @@ min_num_faces: 1000"
 ___
 ## Parameters Explained
 
-### StartYakReconstruction
+### StartReconstruction
 
 **tracking_frame:** Camera tf frame where the image and depth image are relative to
 
@@ -77,7 +77,7 @@ ___
 
 For more info see the [Open3D documentation on RGBD Integration](http://www.open3d.org/docs/0.12.0/tutorial/pipelines/rgbd_integration.html).
 
-### StopYakReconstruction
+### StopReconstruction
 
 **archive_directory:** (optional) Where to store all the captured color images, depth imaegs, poses, and camera info, this can take a while to write all of these files and it will skip this step if you leave this blank
 
@@ -106,7 +106,7 @@ ros2 service call /start_publishing std_srvs/srv/Trigger
 
 Call service to start reconstruction
 ```
-ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartYakReconstruction "tracking_frame: 'sim_camera'
+ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartReconstruction "tracking_frame: 'sim_camera'
 relative_frame: 'world'
 translation_distance: 0.0
 rotational_distance: 0.0
@@ -121,7 +121,7 @@ rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: 
 
 Call service to stop reconstruction
 ```
-ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopYakReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/archive'
+ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/archive'
 mesh_filepath: '/home/ros-industrial/open3d_archive/results_mesh.ply'
 normal_filters: [{ normal_direction: {x: 0.0, y: 0.0, z: 1.0}, angle: 90}]
 min_num_faces: 1000"

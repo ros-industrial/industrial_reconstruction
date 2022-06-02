@@ -5,7 +5,7 @@
   <description>A collection of ROS interfaces for Open3D</description>
 
   <author email="levi.armstrong@swri.org">Levi Armstrong</author>
-  <maintainer email="levi.armstrong@swri.org">Levi Armstrong</maintainer>
+  <maintainer email="tyler.marr@swri.org">Tyler Marr</maintainer>
   <license>Apache2</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

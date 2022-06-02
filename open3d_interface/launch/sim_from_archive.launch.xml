@@ -22,7 +22,7 @@
     <arg name="pub_rate" value="$(var pub_rate)"/>
   </include>
 
-  <include file="$(find-pkg-share open3d_interface)/launch/yak.launch.xml">
+  <include file="$(find-pkg-share open3d_interface)/launch/reconstruction.launch.xml">
     <arg name="depth_image_topic" value="$(var depth_image_topic)"/>
     <arg name="color_image_topic" value="$(var color_image_topic)"/>
     <arg name="camera_info_topic" value="$(var camera_info_topic)"/>

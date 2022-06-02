@@ -20,8 +20,8 @@ set(msg_files
     "msg/NormalFilterParams.msg")
 
 set(srv_files
-    "srv/StartYakReconstruction.srv"
-    "srv/StopYakReconstruction.srv")
+    "srv/StartReconstruction.srv"
+    "srv/StopReconstruction.srv")
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
