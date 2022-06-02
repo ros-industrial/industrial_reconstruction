@@ -6,6 +6,6 @@ string mesh_filepath # The filepath to save the mesh at
 uint32 min_num_faces
 
 # Filter by normal orientation
-open3d_interface_msgs/NormalFilterParams[] normal_filters
+industrial_reconstruction_msgs/NormalFilterParams[] normal_filters
 ---
 bool success

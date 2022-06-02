@@ -33,10 +33,10 @@ def read_pose(filename):
     content = f.readlines()
     return np.array(list(map(float, (''.join(content[0:4])).strip().split()))).reshape((4, 4))
 
-class Open3dTestPublisher(Node):
+class ArchivePlayer(Node):
 
     def __init__(self):
-        super().__init__('Open3d_test_publisher')
+        super().__init__('industrial_reconstruction_archive_player')
 
         self.declare_parameter("depth_image_topic")
         self.declare_parameter("color_image_topic")
@@ -184,7 +184,7 @@ class Open3dTestPublisher(Node):
 def main(args=None):
 
     rclpy.init(args=args)
-    open3d_test_pub = Open3dTestPublisher()
-    rclpy.spin(open3d_test_pub)
-    open3d_test_pub.destroy_node()
+    ir_arcihve_player = ArchivePlayer()
+    rclpy.spin(ir_arcihve_player)
+    ir_arcihve_player.destroy_node()
     rclpy.shutdown()

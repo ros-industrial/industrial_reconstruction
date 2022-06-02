@@ -3,19 +3,19 @@ from setuptools import find_packages
 import os
 from glob import glob
 
-package_name = 'open3d_interface'
+package_name = 'industrial_reconstruction'
 
 setup(
     name=package_name,
     version='0.0.1',
-    packages=['open3d_interface', 'src/open3d_interface/utility'],
+    packages=['industrial_reconstruction', 'src/industrial_reconstruction/utility'],
     data_files=[
     ('share/ament_index/resource_index/packages',
         ['resource/' + package_name]),
     ('share/' + package_name, ['package.xml']),
     (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.*')),
     (os.path.join('share', package_name, 'config'), glob('config/*')),
-    (os.path.join('share', package_name, 'open3d_interface', 'utility'), glob('src/open3d_interface/utility/*.py'))],
+    (os.path.join('share', package_name, 'industrial_reconstruction', 'utility'), glob('src/industrial_reconstruction/utility/*.py'))],
     install_requires=[
         'setuptools',
         'launch',
@@ -33,13 +33,13 @@ setup(
         'Programming Language :: Python',
         'Topic :: Software Development',
     ],
-    description='ROS wrapper for TSDF function in Open3d',
+    description='A ROS2 reconstruction utility leveraging TSDF from Open3D',
     license='Apache License, Version 2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'open3d_archive_player = open3d_interface.open3d_archive_player:main',
-            'open3d_reconstruction = open3d_interface.open3d_reconstruction:main'
+            'archive_player = industrial_reconstruction.archive_player:main',
+            'industrial_reconstruction = industrial_reconstruction.industrial_reconstruction:main'
         ],
     },
 )

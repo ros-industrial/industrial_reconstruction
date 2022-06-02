@@ -7,7 +7,7 @@
   <arg name="cache_count" default="10"/>
   <arg name="slop" default="0.01"/>
 
-  <node pkg="open3d_interface" exec="open3d_reconstruction" name="open3d_reconstruction" output="screen">
+  <node pkg="industrial_reconstruction" exec="industrial_reconstruction" name="industrial_reconstruction" output="screen">
     <param name="depth_image_topic" value="$(var depth_image_topic)"/>
     <param name="color_image_topic" value="$(var color_image_topic)"/>
     <param name="camera_info_topic" value="$(var camera_info_topic)"/>

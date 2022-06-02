@@ -25,9 +25,9 @@ from collections import deque
 from os.path import exists, join, isfile
 from sensor_msgs.msg import Image, CameraInfo
 from message_filters import ApproximateTimeSynchronizer, Subscriber
-from src.open3d_interface.utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
-from open3d_interface_msgs.srv import StartReconstruction, StopReconstruction
-from src.open3d_interface.utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVectors
+from src.industrial_reconstruction.utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
+from industrial_reconstruction_msgs.srv import StartReconstruction, StopReconstruction
+from src.industrial_reconstruction.utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVectors
 
 # ROS Image message -> OpenCV2 image converter
 from cv_bridge import CvBridge, CvBridgeError
@@ -41,10 +41,10 @@ def filterNormals(mesh, direction, angle):
    mesh.remove_triangles_by_mask(dot_prods < np.cos(angle))
    return mesh
 
-class Open3dReconstruction(Node):
+class IndustrialReconstruction(Node):
 
     def __init__(self):
-        super().__init__('open3d_reconstruction')
+        super().__init__('industrial_reconstruction')
 
         self.bridge = CvBridge()
 
@@ -130,7 +130,7 @@ class Open3dReconstruction(Node):
 
         self.info_sub = self.create_subscription(CameraInfo, self.camera_info_topic, self.cameraInfoCallback, 10)
 
-        self.mesh_pub = self.create_publisher(Marker, "open3d_mesh", 10)
+        self.mesh_pub = self.create_publisher(Marker, "industrial_reconstruction_mesh", 10)
 
         self.start_server = self.create_service(StartReconstruction, 'start_reconstruction',
                                                 self.startReconstructionCallback)
@@ -353,7 +353,7 @@ class Open3dReconstruction(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    open3d_reconstruction = Open3dReconstruction()
-    rclpy.spin(open3d_reconstruction)
-    open3d_reconstruction.destroy_node()
+    industrial_reconstruction = IndustrialReconstruction()
+    rclpy.spin(industrial_reconstruction)
+    industrial_reconstruction.destroy_node()
     rclpy.shutdown()

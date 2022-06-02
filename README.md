@@ -1,4 +1,4 @@
-# open3d_interface
+# industrial Reconstruction
 
 A utility to create meshes using an RGB-D camera feed given known positions and parameters of the camera.
 
@@ -16,12 +16,12 @@ A utility to create meshes using an RGB-D camera feed given known positions and 
 
 Launch reconstruction node
 ```
-ros2 launch open3d_interface reconstruction.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
+ros2 launch industrial_reconstruction reconstruction.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
 ```
 
 Call service to start reconstruction
 ```
-ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartReconstruction "tracking_frame: 'camera'
+ros2 service call /start_reconstruction industrial_reconstruction_msgs/srv/StartReconstruction "tracking_frame: 'camera'
 relative_frame: 'world'
 translation_distance: 0.0
 rotational_distance: 0.0
@@ -36,8 +36,8 @@ rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: 
 
 Call service to stop reconstruction
 ```
-ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/archive'
-mesh_filepath: '/home/ros-industrial/open3d_archive/results_mesh.ply'
+ros2 service call /stop_reconstruction industrial_reconstruction_msgs/srv/StopReconstruction "archive_directory: '/home/ros-industrial/industrial_reconstruction_archive/archive'
+mesh_filepath: '/home/ros-industrial/industrial_reconstruction_archive/results_mesh.ply'
 normal_filters: [{ normal_direction: {x: 0.0, y: 0.0, z: 1.0}, angle: 90}]
 min_num_faces: 1000"
 ```
@@ -96,7 +96,7 @@ For more info see the [Open3D documentation on RGBD Integration](http://www.open
 
 Launch script to bringup main reconstruction node and archive player
 ```
-ros2 launch open3d_interface sim_from_archive.launch.xml image_directory:=</path/to/archived/data> rviz:=true
+ros2 launch industrial_reconstruction sim_from_archive.launch.xml image_directory:=</path/to/archived/data> rviz:=true
 ```
 
 Call service to start publishing data by parsing through archived camera info, poses, color images, and depth images
@@ -106,7 +106,7 @@ ros2 service call /start_publishing std_srvs/srv/Trigger
 
 Call service to start reconstruction
 ```
-ros2 service call /start_reconstruction open3d_interface_msgs/srv/StartReconstruction "tracking_frame: 'sim_camera'
+ros2 service call /start_reconstruction industrial_reconstruction_msgs/srv/StartReconstruction "tracking_frame: 'sim_camera'
 relative_frame: 'world'
 translation_distance: 0.0
 rotational_distance: 0.0
@@ -121,8 +121,8 @@ rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: 
 
 Call service to stop reconstruction
 ```
-ros2 service call /stop_reconstruction open3d_interface_msgs/srv/StopReconstruction "archive_directory: '/home/ros-industrial/open3d_archive/archive'
-mesh_filepath: '/home/ros-industrial/open3d_archive/results_mesh.ply'
+ros2 service call /stop_reconstruction industrial_reconstruction_msgs/srv/StopReconstruction "archive_directory: '/home/ros-industrial/industrial_reconstruction_archive/archive'
+mesh_filepath: '/home/ros-industrial/industrial_reconstruction_archive/results_mesh.ply'
 normal_filters: [{ normal_direction: {x: 0.0, y: 0.0, z: 1.0}, angle: 90}]
 min_num_faces: 1000"
 ```

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(open3d_interface_msgs)
+project(industrial_reconstruction_msgs)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)

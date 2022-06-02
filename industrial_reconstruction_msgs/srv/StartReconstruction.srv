@@ -5,8 +5,8 @@ float32 translation_distance # The minimum translation distance in meters requir
 float32 rotational_distance # The minimum rotational distance required before recording another image
 bool live # Whether or not to do integration live, may cause loss of some data
 
-open3d_interface_msgs/TSDFVolumeParams tsdf_params
-open3d_interface_msgs/RGBDImageParams rgbd_params
+industrial_reconstruction_msgs/TSDFVolumeParams tsdf_params
+industrial_reconstruction_msgs/RGBDImageParams rgbd_params
 
 ---
 bool success
