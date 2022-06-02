@@ -1,6 +1,16 @@
-# Open3D: www.open3d.org
-# The MIT License (MIT)
-# See license file or visit www.open3d.org for details
+# Copyright 2022 Southwest Research Institute
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import sys
 import rclpy
@@ -10,20 +20,14 @@ from tf2_ros import TransformListener
 import open3d as o3d
 import numpy as np
 
-from ament_index_python.packages import get_package_share_directory
-pkg_share_dir = get_package_share_directory('open3d_interface')
-print(pkg_share_dir)
-sys.path.append(pkg_share_dir)
-sys.path.append(pkg_share_dir + "/open3d_interface")
-
 from pyquaternion import Quaternion
 from collections import deque
 from os.path import exists, join, isfile
 from sensor_msgs.msg import Image, CameraInfo
 from message_filters import ApproximateTimeSynchronizer, Subscriber
-from utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
+from src.open3d_interface.utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
 from open3d_interface_msgs.srv import StartYakReconstruction, StopYakReconstruction
-from utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVectors
+from src.open3d_interface.utility.ros import getIntrinsicsFromMsg, meshToRos, transformStampedToVectors
 
 # ROS Image message -> OpenCV2 image converter
 from cv_bridge import CvBridge, CvBridgeError
