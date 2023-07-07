@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+
+# Modifications by Cohesive Robotics 
 # Copyright 2022 Southwest Research Institute
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,7 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import rclpy
 from rclpy.node import Node
 import open3d as o3d
@@ -38,12 +40,12 @@ class ArchivePlayer(Node):
     def __init__(self):
         super().__init__('industrial_reconstruction_archive_player')
 
-        self.declare_parameter("depth_image_topic")
-        self.declare_parameter("color_image_topic")
-        self.declare_parameter("camera_info_topic")
-        self.declare_parameter("relative_frame")
-        self.declare_parameter("tracking_frame")
-        self.declare_parameter("image_directory")
+        self.declare_parameter("depth_image_topic", "depth_image_topic")
+        self.declare_parameter("color_image_topic", "color_image_topic")
+        self.declare_parameter("camera_info_topic", "camera_info_topic")
+        self.declare_parameter("relative_frame", "relative_frame")
+        self.declare_parameter("tracking_frame", "tracking_frame")
+        self.declare_parameter("image_directory", "image_directory")
         self.declare_parameter("pub_rate")
         self.declare_parameter("color_image_encoding", "rgb8")
         self.declare_parameter("depth_image_encoding", "16UC1")
@@ -155,6 +157,7 @@ class ArchivePlayer(Node):
     def timerCallback(self):
         if self.publishing:
             self.current_index += 1
+            self.get_logger().info("Publishing %d image of %d images." %(self.current_index, self.num_imgs))
             if self.current_index >= self.num_imgs:
                 self.current_index = 0
             color_index_string = f"{self.current_index:06d}" + ".jpg"

@@ -1,6 +1,6 @@
 # Industrial Reconstruction
 
-A utility to create meshes using an RGB-D camera feed given known positions and parameters of the camera. This package makes heavy use of the python library [Open3D](https://github.com/isl-org/Open3D).
+This package utilizes the [Open3D](https://github.com/isl-org/Open3D) library in Python to create meshes using an RGB-D camera feed. It supports GPU acceleration and utilizes tensors for efficient mesh construction.
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/41449746/171745032-c915a431-0dbd-462d-9020-768ad63ff0f0.GIF" />
@@ -8,13 +8,22 @@ A utility to create meshes using an RGB-D camera feed given known positions and 
 
 ## Setup
 
-1. Install Open3D
+1. Install Open3D (Min required version `0.15.0`. tested with `0.17.0` 
     ```
-    pip3 install open3d
+    pip3 install open3d=0.17.0
+    ```
+    Upgrade the pip if newer version of open3D is showing incompatible.
+
+    ```
+    pip3 install --upgrade pip
     ```
 
 2. Clone this repository into your workspace
 3. Build the package as a normal ROS2 package
+
+## Optional 
+The package supports GPU acceleration. CUDA 11.0 is recommended. 
+Please see the [official documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) to install the CUDA toolkit from Nvidia.
 
 ## Example Usage
 
@@ -31,12 +40,14 @@ translation_distance: 0.0
 rotational_distance: 0.0
 live: true
 tsdf_params:
-  voxel_length: 0.02
+  voxel_length: 0.005
   sdf_trunc: 0.04
   min_box_values: {x: 0.05, y: 0.25, z: 0.1}
   max_box_values: {x: 7.0, y: 3.0, z: 1.2}
-rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: false}"
+rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: false}
+"
 ```
+Package uses GPU by default if available.
 
 Call service to stop reconstruction
 ```
@@ -114,13 +125,14 @@ ros2 service call /start_reconstruction industrial_reconstruction_msgs/srv/Start
 relative_frame: 'world'
 translation_distance: 0.0
 rotational_distance: 0.0
-live: true
+live: false
 tsdf_params:
-  voxel_length: 0.02
+  voxel_length: 0.005
   sdf_trunc: 0.04
-  min_box_values: {x: 0.05, y: 0.25, z: 0.1}
-  max_box_values: {x: 7.0, y: 3.0, z: 1.2}
-rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: false}"
+  min_box_values: {x: -0.6, y: 0.2, z: -0.28}
+  max_box_values: {x: 0.6, y: 1.0, z: 0.4}
+rgbd_params: {depth_scale: 1000.0, depth_trunc: 0.75, convert_rgb_to_intensity: false}
+"
 ```
 
 Call service to stop reconstruction
