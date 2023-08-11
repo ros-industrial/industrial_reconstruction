@@ -20,7 +20,7 @@ A utility to create meshes using an RGB-D camera feed given known positions and 
 
 Launch reconstruction node
 ```
-ros2 launch industrial_reconstruction reconstruction.launch depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
+ros2 launch industrial_reconstruction reconstruction.launch.xml depth_image_topic:=/camera/depth_image/raw color_image_topic:=/camera/color_image/raw camera_info_topic:=/camera/camera_info
 ```
 
 Call service to start reconstruction
