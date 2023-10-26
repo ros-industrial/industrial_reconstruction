@@ -234,6 +234,7 @@ class IndustrialReconstruction(Node):
         self.get_logger().info("Generating mesh")
         if self.tsdf_volume is None:
             res.success = False
+            res.message = "Start reconstruction hasn't been called yet"
             return res
         if not self.live_integration:
             while len(self.tsdf_integration_data) > 0:
