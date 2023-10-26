@@ -222,6 +222,7 @@ class IndustrialReconstruction(Node):
         self.record = True
 
         res.success = True
+        res.message = "TSDF Volume generated"
         return res
 
     def stopReconstructionCallback(self, req, res):
@@ -279,6 +280,7 @@ class IndustrialReconstruction(Node):
 
         self.get_logger().info("DONE")
         res.success = True
+        res.message = "The mesh was saved to " + str(archive_mesh_filepath)
         return res
 
     def cameraCallback(self, depth_image_msg, rgb_image_msg):
