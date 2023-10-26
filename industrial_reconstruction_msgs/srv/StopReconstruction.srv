@@ -9,3 +9,4 @@ uint32 min_num_faces
 industrial_reconstruction_msgs/NormalFilterParams[] normal_filters
 ---
 bool success
+string message
