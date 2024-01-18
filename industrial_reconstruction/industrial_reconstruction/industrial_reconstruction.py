@@ -339,8 +339,8 @@ class IndustrialReconstruction(Node):
                                     mesh_msg.header.stamp = self.get_clock().now().to_msg()
                                     mesh_msg.header.frame_id = self.relative_frame
                                     self.mesh_pub.publish(mesh_msg)
-                            except:
-                                self.get_logger().error("Error processing images into tsdf")
+                            except Exception as e:
+                                self.get_logger().error("Error processing images into tsdf: " + str(e))
                                 self.integration_done = True
                                 return
                         else:
