@@ -45,6 +45,8 @@ class ArchivePlayer(Node):
         self.declare_parameter("tracking_frame")
         self.declare_parameter("image_directory")
         self.declare_parameter("pub_rate")
+        self.declare_parameter("color_image_encoding", "rgb8")
+        self.declare_parameter("depth_image_encoding", "16UC1")
 
         try:
             self.depth_image_topic = str(self.get_parameter('depth_image_topic').value)
@@ -74,6 +76,14 @@ class ArchivePlayer(Node):
             self.pub_rate = int(self.get_parameter('pub_rate').value)
         except:
             self.get_logger().error('Failed to load pub_rate parameter')
+        try:
+            self.color_image_encoding = str(self.get_parameter('color_image_encoding').value)
+        except:
+            self.get_logger().error("Failed to load color_image_encoding parameter")
+        try:
+            self.depth_image_encoding = str(self.get_parameter('depth_image_encoding').value)
+        except:
+            self.get_logger().error("Failed to load depth_image_encoding parameter")
 
         for parameter in self._parameters.values():
             print(parameter.name, ":", parameter.value)
@@ -122,6 +132,7 @@ class ArchivePlayer(Node):
     def startPublishingCallback(self, req, res):
         global publishing
         self.publishing = True
+        res.success = True
 
         return res
 
@@ -129,6 +140,7 @@ class ArchivePlayer(Node):
     def stopPublishingCallback(self, req, res):
         global publishing
         self.publishing = False
+        res.success = True
 
         return res
 
@@ -136,6 +148,7 @@ class ArchivePlayer(Node):
     def restartPublishingCallback(self, req, res):
         global publishing, current_index
         current_index = 0
+        res.success = True
 
         return res
 
@@ -171,10 +184,10 @@ class ArchivePlayer(Node):
 
             self.camera_intrinsic_msg.header.stamp = curr_time
             self.camera_info_pub.publish(self.camera_intrinsic_msg)
-            image_message_color = self.bridge.cv2_to_imgmsg(np.asarray(color_img), encoding='rgb8')
+            image_message_color = self.bridge.cv2_to_imgmsg(np.asarray(color_img), encoding=self.color_image_encoding)
             image_message_color.header.stamp = curr_time
             image_message_color.header.frame_id = self.pose_track_frame
-            image_message_depth = self.bridge.cv2_to_imgmsg(np.asarray(depth_img), encoding='16UC1')
+            image_message_depth = self.bridge.cv2_to_imgmsg(np.asarray(depth_img), encoding=self.depth_image_encoding)
             image_message_depth.header.stamp = curr_time
             image_message_depth.header.frame_id = self.pose_track_frame
             self.rgb_pub.publish(image_message_color)
