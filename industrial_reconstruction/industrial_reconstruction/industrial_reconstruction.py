@@ -397,7 +397,7 @@ class IndustrialReconstruction(Node):
                                 self.processed_frame_count += 1
                                 if self.processed_frame_count % 50 == 0:
 
-                                    mesh = self.vgb.extract_triangle_mesh()
+                                    mesh = self.vbg.extract_triangle_mesh()
                                     mesh = mesh.to_legacy()
 
                                     if self.crop_mesh:
