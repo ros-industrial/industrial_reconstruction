@@ -8,9 +8,9 @@ This package utilizes the [Open3D](https://github.com/isl-org/Open3D) library in
 
 ## Setup
 
-1. Install Open3D (Min required version `0.15.0`. tested with `0.17.0` 
+1. Install Open3D (Min required version `0.15.0`. tested with `0.18.0` 
     ```
-    pip3 install open3d=0.17.0
+    pip3 install open3d=0.18.0 --upgrade --upgrade-strategy only-if-needed
     ```
     Upgrade the pip if newer version of open3D is showing incompatible.
 
@@ -22,8 +22,8 @@ This package utilizes the [Open3D](https://github.com/isl-org/Open3D) library in
 3. Build the package as a normal ROS2 package
 
 ## Optional 
-The package supports GPU acceleration. CUDA 11.0 is recommended. 
-Please see the [official documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) to install the CUDA toolkit from Nvidia.
+The package supports GPU acceleration. Please install the appropriate NVIDIA driver. 
+If you're using a docker, please also install [NVIDIA container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and set up the [environment variables](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/docker-specialized.html).
 
 ## Example Usage
 
