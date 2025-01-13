@@ -226,22 +226,32 @@ class IndustrialReconstruction(Node):
 
     def stopReconstructionCallback(self, req, res):
         self.get_logger().info("Stop Reconstruction")
+        if not self.record:
+            res.success = False
+            res.message = "Start reconstruction hasn't been called yet"
+            self.get_logger().error(res.message)
+            return res
+
         self.record = False
 
         while not self.integration_done:
             self.create_rate(1).sleep()
 
         self.get_logger().info("Generating mesh")
-        if self.tsdf_volume is None:
-            res.success = False
-            res.message = "Start reconstruction hasn't been called yet"
-            return res
         if not self.live_integration:
             while len(self.tsdf_integration_data) > 0:
                 data = self.tsdf_integration_data.popleft()
                 rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale, self.depth_trunc,
                                                                           False)
                 self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(data[2]))
+
+        point_cloud = self.tsdf_volume.extract_point_cloud()
+        if len(point_cloud.points) == 0:
+          res.success = False
+          res.message = "The TSDF is empty"
+          self.get_logger().error(res.message)
+          return res
+
         mesh = self.tsdf_volume.extract_triangle_mesh()
         mesh.compute_vertex_normals()
 
