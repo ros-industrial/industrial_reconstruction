@@ -51,52 +51,64 @@ ___
 
 ### StartReconstruction
 
-**tracking_frame:** Camera tf frame where the image and depth image are relative to
+- **tracking_frame:** Camera tf frame where the image and depth image are relative to
 
-**relative_frame:** Base tf frame that the TSDF mesh will be generated relative to
+- **relative_frame:** Base tf frame that the TSDF mesh will be generated relative to
 
-**translation_distance:** Distance the tracking_frame must travel relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
+- **translation_distance:** Distance the tracking_frame must travel relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
-**rotational_distance:** Rotational distance the tracking_frame must rotate relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
+- **rotational_distance:** Rotational distance the tracking_frame must rotate relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
-**live:** Whether or not the TSDF integration is performed while receiving images. Setting this to `true` allows for live visualization of the mesh being generated, but may cause the system to miss some frames
+- **live:** Whether or not the TSDF integration is performed while receiving images. Setting this to `true` allows for live visualization of the mesh being generated, but may cause the system to miss some frames
 
-**tsdf_params:** Parameters related to the TSDF mesh generated
+- **tsdf_params:** Parameters related to the TSDF mesh generated
 
- - **voxel_length:** Length of the voxels (in meters) used in the TSDF volume.
-   Smaller values lead to greater resolution in the volume and resulting mesh but at the cost of greater memory consumption and processing compute time.
+    - **sdf_trunc:** The distance (in meters) beyond which the signed distance field is clipped (i.e., points in the volume more than this distance away from the implicit surface have a signed distance of 1.0).
+      This value should be at least 2 times *smaller* than the smallest distance between distinct features in the reconstruction volume.
 
- - **sdf_trunc:** The distance (in meters) beyond which the signed distance field is clipped (i.e., points in the volume more than this distance away from the implicit surface have a signed distance of 1.0).
-   This value should be at least half as large as the smallest distance between distinct features in the reconstruction volume.
-   For example, when reconstructing a 20 mm diameter cylinder the value of `sdf_trunc` should be < 10 mm (and probably closer to 5 mm), otherwise the entire cylinder might be considered to belong to a single planar surface fit to all the points on the cylinder.
+    - **voxel_length:** Length of the voxels (in meters) used in the TSDF volume.
+      This value should be at least 2-4 times smaller than `sdf_trunc`.
+      Smaller values lead to greater resolution in the volume and resulting mesh but at the cost of greater memory consumption and processing compute time.
 
- - **min_box_values:** The 3D position (meters) of the minimum corner of the bounding box used to crop the TSDF mesh that is generated. Note: if the volume of the crop box is close to 0, the crop box will not be used.
+     - **min_box_values:** The 3D position (meters) of the minimum corner of the bounding box used to crop the TSDF mesh that is generated. Note: if the volume of the crop box is close to 0, the crop box will not be used.
 
- - **max_box_values:** The 3D position (meters) of the maximum corner of the bounding box used to crop the TSDF mesh that is generated. Note: if the volume of the crop box is close to 0, the crop box will not be used.
+     - **max_box_values:** The 3D position (meters) of the maximum corner of the bounding box used to crop the TSDF mesh that is generated. Note: if the volume of the crop box is close to 0, the crop box will not be used.
 
-**rgbd_params:** Parameters relating specifically to the camera being used
+- **rgbd_params:** Parameters relating specifically to the camera being used
 
- - **depth_scale:** Scale factor for the points in the depth image. Many cameras report depth values in units of millimeters, so set this value to 1000 in this case to convert the depth values to meters.
+    - **depth_scale:** Scale factor for the points in the depth image.
+      Many cameras report depth values in units of millimeters, so set this value to 1000 in this case to convert the depth values to meters.
 
- - **depth_trunc:** The distance (in meters) beyond which depth data is clipped. Note: this distance is relative to the camera frame, not the reconstruction frame, and is intended to quickly filter depth points that are far from the camera. 
+     - **depth_trunc:** The distance (in meters) beyond which depth data is clipped.
+       Note: this distance is relative to the camera frame, not the reconstruction frame, and is intended to quickly filter depth points that are far from the camera. 
 
- - **convert_rgb_to_intensity:** Allows for using float type intensity if using grayscale as well. Usually set this to `false` unless you have a specific reason to do otherwise
+     - **convert_rgb_to_intensity:** Allows for using float type intensity if using grayscale as well. Usually set this to `false` unless you have a specific reason to do otherwise
 
 For more info see the [Open3D documentation on RGBD Integration](http://www.open3d.org/docs/0.12.0/tutorial/pipelines/rgbd_integration.html).
 
+#### Example
+
+Consider reconstructing a pipe with 100 mm diameter and 500 mm length.
+The minimum distance between features on the pipe is roughly the diameter of the pipe, so `sdf_trunc < 100 mm / 2`, so a value of 0.025 m would be appropriate.
+The value of `voxel_length` should be something less than 2-4 times smaller than `sdf_trunc`, so a value of 0.005 m would be appropriate.
+If the pipe is being scanned at a distance of 1 m away, then a reasonable value of `depth_trunc` would be 1.5 m.
+If the pipe axis aligns with the z-axis of `relative_frame` and the center of one of its end faces sits near the origin of `relative_frame`, reasonable values for the crop box would be:
+    - `min_box_value = [-0.075, -0.075, -0.05]` (0.5 times the cylinder radius in the radial directions and a little below the bottom face in the axial direction)
+    - `max_box_value = [0.075, 0.075, 0.550]` (0.5 times the cylinder radius in the radial directions and 1.1 times the length of the pipe in the axial direction)
+
 ### StopReconstruction
 
-**archive_directory:** (optional) Where to store all the captured color images, depth imaegs, poses, and camera info, this can take a while to write all of these files and it will skip this step if you leave this blank
+- **archive_directory:** (optional) Where to store all the captured color images, depth imaegs, poses, and camera info, this can take a while to write all of these files and it will skip this step if you leave this blank
 
-**mesh_filepath:** Where to save the resulting ply file, include file extension in name.
+- **mesh_filepath:** Where to save the resulting ply file, include file extension in name.
 
-**normal_filters:** (optional) A vector of filters applied based off triangle normals, an empty vector will apply no normal filtering
+- **normal_filters:** (optional) A vector of filters applied based off triangle normals, an empty vector will apply no normal filtering
 
- - **normal_direction:** The desired direction of face normals to keep
+    - **normal_direction:** The desired direction of face normals to keep
 
- - **angle:** The angle, in degrees, relative to the normal direction to keep. Ex: normal direction of [0,0,1] with an angle of 30 degrees will only keep faces within 30 degrees of straight vertical
+     - **angle:** The angle, in degrees, relative to the normal direction to keep. Ex: normal direction of [0,0,1] with an angle of 30 degrees will only keep faces within 30 degrees of straight vertical
 
-**min_num_faces:** (optional) The minimum number of connected faces required to be included in the exported mesh, setting this to 0 or leaving blank will result in no filtering applied
+- **min_num_faces:** (optional) The minimum number of connected faces required to be included in the exported mesh, setting this to 0 or leaving blank will result in no filtering applied
 
 ---
 ## Running on archived data
