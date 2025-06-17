@@ -63,19 +63,22 @@ ___
 
 **tsdf_params:** Parameters related to the TSDF mesh generated
 
- - **voxel_length:** Controls the size of triangles created (Note: this is not in meters, in units associated with the camera)
+ - **voxel_length:** Length of the voxels (in meters) used in the TSDF volume.
+   Smaller values lead to greater resolution in the volume and resulting mesh but at the cost of greater memory consumption and processing compute time.
 
- - **sdf_trunc:** Controls how connected to make adjacent points. A higher value will connected more disparate data, a low value requires that points be very close to be connected
+ - **sdf_trunc:** The distance (in meters) beyond which the signed distance field is clipped (i.e., points in the volume more than this distance away from the implicit surface have a signed distance of 1.0).
+   This value should be at least half as large as the smallest distance between distinct features in the reconstruction volume.
+   For example, when reconstructing a 20 mm diameter cylinder the value of `sdf_trunc` should be < 10 mm (and probably closer to 5 mm), otherwise the entire cylinder might be considered to belong to a single planar surface fit to all the points on the cylinder.
 
- - **min_box_values:** The minimum values of the TSDF volume bounding box used to crop the TSDF mesh that is generated (Leaving all box values as 0 will lead to no bounding box being used)
+ - **min_box_values:** The 3D position (meters) of the minimum corner of the bounding box used to crop the TSDF mesh that is generated. Note: if the volume of the crop box is close to 0, the crop box will not be used.
 
- - **max_box_values:** The maximum values of the TSDF volume bounding box used to crop the TSDF mesh that is generated
+ - **max_box_values:** The 3D position (meters) of the maximum corner of the bounding box used to crop the TSDF mesh that is generated. Note: if the volume of the crop box is close to 0, the crop box will not be used.
 
 **rgbd_params:** Parameters relating specifically to the camera being used
 
- - **depth_scale:** Scale of the data. Set to 1000 to get the output data in meters if the camera's default distance scale is in milimeters
+ - **depth_scale:** Scale factor for the points in the depth image. Many cameras report depth values in units of millimeters, so set this value to 1000 in this case to convert the depth values to meters.
 
- - **depth_trunc:** The distance at which data beyond is clipped and not used. Example: 1.0 would lead to anything greater than 1.0 meters away from the camera would be ignored
+ - **depth_trunc:** The distance (in meters) beyond which depth data is clipped. Note: this distance is relative to the camera frame, not the reconstruction frame, and is intended to quickly filter depth points that are far from the camera. 
 
  - **convert_rgb_to_intensity:** Allows for using float type intensity if using grayscale as well. Usually set this to `false` unless you have a specific reason to do otherwise
 
