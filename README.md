@@ -97,6 +97,7 @@ The value of `voxel_length` should be something less than 2-4 times smaller than
 If the pipe is being scanned at a distance of 1 m away, then a reasonable value of `depth_trunc` would be 1.5 m.
 
 If the pipe axis aligns with the z-axis of `relative_frame` and the center of one of its end faces sits near the origin of `relative_frame`, reasonable values for the crop box would be:
+
     - `min_box_value = [-0.075, -0.075, -0.05]` (0.5 times the cylinder radius in the radial directions and a little below the bottom face in the axial direction)
     - `max_box_value = [0.075, 0.075, 0.550]` (0.5 times the cylinder radius in the radial directions and 1.1 times the length of the pipe in the axial direction)
 
