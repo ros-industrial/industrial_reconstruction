@@ -51,13 +51,13 @@ ___
 
 ### StartReconstruction
 
-- **tracking_frame:** Camera tf frame where the image and depth image are relative to
+- **tracking_frame:** Camera `tf` frame where the image and depth image are relative to
 
-- **relative_frame:** Base tf frame that the TSDF mesh will be generated relative to
+- **relative_frame:** Base `tf` frame that the TSDF mesh will be generated relative to
 
-- **translation_distance:** Distance the tracking_frame must travel relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
+- **translation_distance:** Distance the `tracking_frame` must travel relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
-- **rotational_distance:** Rotational distance the tracking_frame must rotate relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
+- **rotational_distance:** Rotational distance the `tracking_frame` must rotate relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
 - **live:** Whether or not the TSDF integration is performed while receiving images. Setting this to `true` allows for live visualization of the mesh being generated, but may cause the system to miss some frames
 
@@ -89,9 +89,13 @@ For more info see the [Open3D documentation on RGBD Integration](http://www.open
 #### Example
 
 Consider reconstructing a pipe with 100 mm diameter and 500 mm length.
+
 The minimum distance between features on the pipe is roughly the diameter of the pipe, so `sdf_trunc < 100 mm / 2`, so a value of 0.025 m would be appropriate.
+
 The value of `voxel_length` should be something less than 2-4 times smaller than `sdf_trunc`, so a value of 0.005 m would be appropriate.
+
 If the pipe is being scanned at a distance of 1 m away, then a reasonable value of `depth_trunc` would be 1.5 m.
+
 If the pipe axis aligns with the z-axis of `relative_frame` and the center of one of its end faces sits near the origin of `relative_frame`, reasonable values for the crop box would be:
     - `min_box_value = [-0.075, -0.075, -0.05]` (0.5 times the cylinder radius in the radial directions and a little below the bottom face in the axial direction)
     - `max_box_value = [0.075, 0.075, 0.550]` (0.5 times the cylinder radius in the radial directions and 1.1 times the length of the pipe in the axial direction)
