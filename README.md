@@ -51,13 +51,13 @@ ___
 
 ### StartReconstruction
 
-- **tracking_frame:** Camera `tf` frame where the image and depth image are relative to
+- **:** Camera `tf` frame where the image and depth image are relative to
 
 - **relative_frame:** Base `tf` frame that the TSDF mesh will be generated relative to
 
-- **translation_distance:** Distance the `tracking_frame` must travel relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
+- **translation_distance:** Distance the `tracking_frame` must travel relative to the `relative_frame` before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
-- **rotational_distance:** Rotational distance the `tracking_frame` must rotate relative to the relative_frame before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
+- **rotational_distance:** Rotational distance the `tracking_frame` must rotate relative to the `relative_frame` before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
 - **live:** Whether or not the TSDF integration is performed while receiving images. Setting this to `true` allows for live visualization of the mesh being generated, but may cause the system to miss some frames
 
