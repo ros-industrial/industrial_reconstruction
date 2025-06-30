@@ -51,9 +51,9 @@ ___
 
 ### StartReconstruction
 
-- **:** Camera `tf` frame where the image and depth image are relative to
+- **tracking_frame:** Camera `tf` frame (i.e., reference frame for the color and depth images)
 
-- **relative_frame:** Base `tf` frame that the TSDF mesh will be generated relative to
+- **relative_frame:** Reference `tf` frame for the the TSDF volume/mesh
 
 - **translation_distance:** Distance the `tracking_frame` must travel relative to the `relative_frame` before another image is allowed to be added to the volume (typically works best with 0 and hasn't yet been thoroughly tested with greater values)
 
