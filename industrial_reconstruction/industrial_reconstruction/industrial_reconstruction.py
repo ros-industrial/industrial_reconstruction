@@ -168,9 +168,9 @@ class IndustrialReconstruction(Node):
         self.prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
         self.prev_pose_tran = np.array([0.0, 0.0, 0.0])
 
-        if (req.tsdf_params.min_box_values.x == req.tsdf_params.max_box_values.x and
-                req.tsdf_params.min_box_values.y == req.tsdf_params.max_box_values.y and
-                req.tsdf_params.min_box_values.z == req.tsdf_params.max_box_values.z):
+        if (np.isclose(req.tsdf_params.min_box_values.x, req.tsdf_params.max_box_values.x) and
+                np.isclose(req.tsdf_params.min_box_values.y, req.tsdf_params.max_box_values.y) and
+                np.isclose(req.tsdf_params.min_box_values.z, req.tsdf_params.max_box_values.z)):
             self.crop_mesh = False
         else:
             self.crop_mesh = True
