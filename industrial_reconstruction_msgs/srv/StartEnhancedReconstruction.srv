@@ -1,0 +1,13 @@
+# Enhanced reconstruction service with improved mesh quality
+string tracking_frame
+string relative_frame
+float32 translation_distance
+float32 rotational_distance
+bool live
+
+industrial_reconstruction_msgs/EnhancedTSDFParams enhanced_params
+industrial_reconstruction_msgs/RGBDImageParams rgbd_params
+
+---
+bool success
+string message

@@ -17,11 +17,13 @@ find_package(geometry_msgs REQUIRED)
 set(msg_files
     "msg/RGBDImageParams.msg"
     "msg/TSDFVolumeParams.msg"
-    "msg/NormalFilterParams.msg")
+    "msg/NormalFilterParams.msg"
+    "msg/EnhancedTSDFParams.msg")
 
 set(srv_files
     "srv/StartReconstruction.srv"
-    "srv/StopReconstruction.srv")
+    "srv/StopReconstruction.srv"
+    "srv/StartEnhancedReconstruction.srv")
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}

@@ -51,16 +51,7 @@ def transformStampedToVectors(gm_tf_stamped):
 def meshToRos(mesh):
     triangles = np.asarray(mesh.triangles)
     vertices = np.asarray(mesh.vertices)
-    # Check if vertex_colors exist
-    if hasattr(mesh, 'vertex_colors') and len(mesh.vertex_colors) > 0:
-        vertex_colors = np.asarray(mesh.vertex_colors)
-    else:
-        # Assign color based on Z value of the vertex (or any other axis)
-        z_min, z_max = vertices[:, 2].min(), vertices[:, 2].max()
-        vertex_colors = np.zeros_like(vertices)
-        vertex_colors[:, 0] = (vertices[:, 2] - z_min) / (z_max - z_min)
-        vertex_colors[:, 1] = (vertices[:, 2] - z_min) / (z_max - z_min)
-        vertex_colors[:, 2] = (vertices[:, 2] - z_min) / (z_max - z_min)
+    vertex_colors = np.asarray(mesh.vertex_colors)
     out_msg = Marker()
     out_msg.type = out_msg.TRIANGLE_LIST
     out_msg.action = out_msg.ADD
