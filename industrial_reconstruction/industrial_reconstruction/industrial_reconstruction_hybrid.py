@@ -19,6 +19,9 @@ from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
 import open3d as o3d
 import numpy as np
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 from pyquaternion import Quaternion
 from collections import deque
@@ -34,6 +37,16 @@ from cv_bridge import CvBridge, CvBridgeError
 # OpenCV2 for saving an image
 from visualization_msgs.msg import Marker
 
+# Import C++ extensions
+try:
+    import industrial_reconstruction_cpp as cpp_ext
+    CPP_EXTENSIONS_AVAILABLE = True
+    print("C++ extensions loaded successfully")
+except ImportError as e:
+    print(f"Warning: C++ extensions not available: {e}")
+    print("Falling back to Python implementation")
+    CPP_EXTENSIONS_AVAILABLE = False
+
 def filterNormals(mesh, direction, angle):
    mesh.compute_vertex_normals()
    tri_normals = np.asarray(mesh.triangle_normals)
@@ -41,10 +54,10 @@ def filterNormals(mesh, direction, angle):
    mesh.remove_triangles_by_mask(dot_prods < np.cos(angle))
    return mesh
 
-class IndustrialReconstruction(Node):
+class IndustrialReconstructionHybrid(Node):
 
     def __init__(self):
-        super().__init__('industrial_reconstruction')
+        super().__init__('industrial_reconstruction_hybrid')
 
         self.bridge = CvBridge()
 
@@ -71,13 +84,22 @@ class IndustrialReconstruction(Node):
         # Whether to convert RGB image to intensity image.
         self.convert_rgb_to_intensity = False
 
-        # Used to store the data used for constructing TSDF
-        self.sensor_data = deque()
-        self.color_images = []
-        self.depth_images = []
-        self.rgb_poses = []
-        self.prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
-        self.prev_pose_tran = np.array([0.0, 0.0, 0.0])
+        # Initialize C++ components if available
+        if CPP_EXTENSIONS_AVAILABLE:
+            self.image_buffer = cpp_ext.ImageBuffer(max_size=50)
+            self.pose_calculator = cpp_ext.PoseCalculator()
+            self.memory_manager = cpp_ext.GlobalMemoryManager.get_image_manager()
+            self.memory_manager.preallocate_buffers(10, 480, 640)
+            print("C++ components initialized")
+        else:
+            # Fallback to Python implementations
+            self.sensor_data = deque()
+            self.color_images = []
+            self.depth_images = []
+            self.rgb_poses = []
+            self.prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
+            self.prev_pose_tran = np.array([0.0, 0.0, 0.0])
+            print("Using Python fallback implementations")
 
         self.tsdf_integration_data = deque()
         self.integration_done = True
@@ -89,6 +111,9 @@ class IndustrialReconstruction(Node):
         self.frame_count = 0
         self.processed_frame_count = 0
         self.reconstructed_frame_count = 0
+
+        # Thread pool for async processing
+        self.executor = ThreadPoolExecutor(max_workers=2)
 
         self.declare_parameter("depth_image_topic")
         self.declare_parameter("color_image_topic")
@@ -149,24 +174,53 @@ class IndustrialReconstruction(Node):
         make_clean_folder(path_color)
         make_clean_folder(path_pose)
 
-        for s in range(len(self.color_images)):
-            # Save your OpenCV2 image as a jpeg
-            o3d.io.write_image("%s/%06d.png" % (path_depth, s), self.depth_images[s])
-            o3d.io.write_image("%s/%06d.jpg" % (path_color, s), self.color_images[s])
-            write_pose("%s/%06d.pose" % (path_pose, s), self.rgb_poses[s])
+        if CPP_EXTENSIONS_AVAILABLE:
+            # Use C++ memory manager for efficient image handling
+            for s in range(len(self.color_images)):
+                # Get temporary buffers from memory manager
+                temp_depth = self.memory_manager.get_temp_depth_image()
+                temp_color = self.memory_manager.get_temp_color_image()
+                
+                # Copy data to temporary buffers
+                temp_depth[:] = self.depth_images[s]
+                temp_color[:] = self.color_images[s]
+                
+                # Save images
+                o3d.io.write_image("%s/%06d.png" % (path_depth, s), o3d.geometry.Image(temp_depth))
+                o3d.io.write_image("%s/%06d.jpg" % (path_color, s), o3d.geometry.Image(temp_color))
+                write_pose("%s/%06d.pose" % (path_pose, s), self.rgb_poses[s])
+                
+                # Return buffers to memory manager
+                self.memory_manager.return_temp_image(temp_depth)
+                self.memory_manager.return_temp_image(temp_color)
+                
             save_intrinsic_as_json(join(path_output, "camera_intrinsic.json"), self.intrinsics)
-
+        else:
+            # Fallback to original implementation
+            for s in range(len(self.color_images)):
+                o3d.io.write_image("%s/%06d.png" % (path_depth, s), self.depth_images[s])
+                o3d.io.write_image("%s/%06d.jpg" % (path_color, s), self.color_images[s])
+                write_pose("%s/%06d.pose" % (path_pose, s), self.rgb_poses[s])
+                save_intrinsic_as_json(join(path_output, "camera_intrinsic.json"), self.intrinsics)
 
     def startReconstructionCallback(self, req, res):
         self.get_logger().info(" Start Reconstruction")
 
-        self.color_images.clear()
-        self.depth_images.clear()
-        self.rgb_poses.clear()
-        self.sensor_data.clear()
+        if CPP_EXTENSIONS_AVAILABLE:
+            # Clear C++ components
+            self.image_buffer.clear()
+            self.pose_calculator.clear_poses()
+            self.memory_manager.clear_unused_buffers()
+        else:
+            # Clear Python fallback
+            self.color_images.clear()
+            self.depth_images.clear()
+            self.rgb_poses.clear()
+            self.sensor_data.clear()
+            self.prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
+            self.prev_pose_tran = np.array([0.0, 0.0, 0.0])
+
         self.tsdf_integration_data.clear()
-        self.prev_pose_rot = np.array([1.0, 0.0, 0.0, 0.0])
-        self.prev_pose_tran = np.array([0.0, 0.0, 0.0])
 
         if (req.tsdf_params.min_box_values.x == req.tsdf_params.max_box_values.x and
                 req.tsdf_params.min_box_values.y == req.tsdf_params.max_box_values.y and
@@ -263,7 +317,6 @@ class IndustrialReconstruction(Node):
         cropped_mesh.remove_triangles_by_mask(triangles_to_remove)
         cropped_mesh.remove_unreferenced_vertices()
 
-
         o3d.io.write_triangle_mesh(req.mesh_filepath, cropped_mesh, False, True)
         mesh_msg = meshToRos(cropped_mesh)
         mesh_msg.header.stamp = self.get_clock().now().to_msg()
@@ -282,80 +335,192 @@ class IndustrialReconstruction(Node):
         res.message = "Mesh Saved to " + req.mesh_filepath
         return res
 
+    def processImageAsync(self, depth_image, color_image, timestamp):
+        """Process image asynchronously using C++ components"""
+        if not CPP_EXTENSIONS_AVAILABLE:
+            return
+            
+        try:
+            # Convert to numpy arrays for C++ processing
+            depth_np = np.array(depth_image, dtype=np.uint8)
+            color_np = np.array(color_image, dtype=np.uint8)
+            
+            # Add to C++ image buffer
+            self.image_buffer.push(depth_np, color_np, timestamp)
+            
+            # Process from buffer if we have enough frames
+            if self.frame_count > 30:
+                success, depth_data, color_data, ts = self.image_buffer.try_pop()
+                if success:
+                    # Process pose calculation using C++ components
+                    self.processPoseWithCpp(depth_data, color_data, ts)
+                    
+        except Exception as e:
+            self.get_logger().error(f"Error in async image processing: {e}")
+
+    def processPoseWithCpp(self, depth_image, color_image, timestamp):
+        """Process pose calculations using C++ components"""
+        try:
+            # Get transform using ROS
+            gm_tf_stamped = self.buffer.lookup_transform(self.relative_frame, self.tracking_frame, timestamp)
+            rgb_t, rgb_r = transformStampedToVectors(gm_tf_stamped)
+            
+            # Create C++ transform data
+            translation = cpp_ext.TransformData.translation
+            rotation = cpp_ext.TransformData.rotation
+            
+            # Convert to C++ types
+            cpp_translation = cpp_ext.TransformData.translation(rgb_t[0], rgb_t[1], rgb_t[2])
+            cpp_rotation = cpp_ext.TransformData.rotation(rgb_r[0], rgb_r[1], rgb_r[2], rgb_r[3])
+            
+            # Create transform data
+            transform_data = cpp_ext.TransformData(cpp_translation, cpp_rotation, timestamp.sec + timestamp.nanosec * 1e-9)
+            
+            # Check if we should process this pose
+            if self.pose_calculator.get_pose_count() > 0:
+                last_pose = cpp_ext.TransformData()
+                self.pose_calculator.get_pose_at_index(self.pose_calculator.get_pose_count() - 1, last_pose)
+                
+                if not self.pose_calculator.should_process_pose(transform_data, last_pose, 
+                                                              self.translation_distance, self.rotational_distance):
+                    return
+            
+            # Add pose to calculator
+            self.pose_calculator.add_pose(transform_data)
+            
+            # Create transformation matrix
+            transform_matrix = self.pose_calculator.create_transformation_matrix(cpp_translation, cpp_rotation)
+            
+            # Convert back to numpy for Open3D
+            rgb_pose = np.array(transform_matrix, dtype=np.float64)
+            
+            # Store data for TSDF integration
+            self.depth_images.append(o3d.geometry.Image(depth_image))
+            self.color_images.append(o3d.geometry.Image(color_image))
+            self.rgb_poses.append(rgb_pose)
+            
+            # Live integration if enabled
+            if self.live_integration and self.tsdf_volume is not None:
+                self.integration_done = False
+                try:
+                    rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
+                        o3d.geometry.Image(color_image), 
+                        o3d.geometry.Image(depth_image), 
+                        self.depth_scale, self.depth_trunc, False)
+                    self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
+                    self.integration_done = True
+                    self.processed_frame_count += 1
+                    
+                    if self.processed_frame_count % 50 == 0:
+                        mesh = self.tsdf_volume.extract_triangle_mesh()
+                        if self.crop_mesh:
+                            cropped_mesh = mesh.crop(self.crop_box)
+                        else:
+                            cropped_mesh = mesh
+                        mesh_msg = meshToRos(cropped_mesh)
+                        mesh_msg.header.stamp = self.get_clock().now().to_msg()
+                        mesh_msg.header.frame_id = self.relative_frame
+                        self.mesh_pub.publish(mesh_msg)
+                except Exception as e:
+                    self.get_logger().error("Error processing images into tsdf: " + str(e))
+                    self.integration_done = True
+                    return
+            else:
+                self.tsdf_integration_data.append([o3d.geometry.Image(depth_image), o3d.geometry.Image(color_image), rgb_pose])
+                self.processed_frame_count += 1
+                
+        except Exception as e:
+            self.get_logger().error("Failed to get transform: " + str(e))
+
     def cameraCallback(self, depth_image_msg, rgb_image_msg):
         if self.record:
             try:
                 # Convert your ROS Image message to OpenCV2
-                # TODO: Generalize image type
                 cv2_depth_img = self.bridge.imgmsg_to_cv2(depth_image_msg, "16UC1")
                 cv2_rgb_img = self.bridge.imgmsg_to_cv2(rgb_image_msg, rgb_image_msg.encoding)
             except CvBridgeError:
                 self.get_logger().error("Error converting ros msg to cv img")
                 return
             else:
-                self.sensor_data.append(
-                    [o3d.geometry.Image(cv2_depth_img), o3d.geometry.Image(cv2_rgb_img), rgb_image_msg.header.stamp])
-                if (self.frame_count > 30):
-                    data = self.sensor_data.popleft()
-                    try:
-                        gm_tf_stamped = self.buffer.lookup_transform(self.relative_frame, self.tracking_frame, data[2])
-                    except Exception as e:
-                        self.get_logger().error("Failed to get transform: " + str(e))
+                if CPP_EXTENSIONS_AVAILABLE:
+                    # Use C++ components for processing
+                    timestamp = time.time()
+                    # Submit to thread pool for async processing
+                    self.executor.submit(self.processImageAsync, cv2_depth_img, cv2_rgb_img, timestamp)
+                else:
+                    # Fallback to original Python implementation
+                    self.sensor_data.append(
+                        [o3d.geometry.Image(cv2_depth_img), o3d.geometry.Image(cv2_rgb_img), rgb_image_msg.header.stamp])
+                    if (self.frame_count > 30):
+                        data = self.sensor_data.popleft()
+                        try:
+                            gm_tf_stamped = self.buffer.lookup_transform(self.relative_frame, self.tracking_frame, data[2])
+                        except Exception as e:
+                            self.get_logger().error("Failed to get transform: " + str(e))
+                            return
+                        rgb_t, rgb_r = transformStampedToVectors(gm_tf_stamped)
+                        rgb_r_quat = Quaternion(rgb_r)
 
-                        return
-                    rgb_t, rgb_r = transformStampedToVectors(gm_tf_stamped)
-                    rgb_r_quat = Quaternion(rgb_r)
+                        tran_dist = np.linalg.norm(rgb_t - self.prev_pose_tran)
+                        rot_dist = Quaternion.absolute_distance(Quaternion(self.prev_pose_rot), rgb_r_quat)
 
-                    tran_dist = np.linalg.norm(rgb_t - self.prev_pose_tran)
-                    rot_dist = Quaternion.absolute_distance(Quaternion(self.prev_pose_rot), rgb_r_quat)
+                        if (tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance):
+                            self.prev_pose_tran = rgb_t
+                            self.prev_pose_rot = rgb_r
+                            rgb_pose = rgb_r_quat.transformation_matrix
+                            rgb_pose[0, 3] = rgb_t[0]
+                            rgb_pose[1, 3] = rgb_t[1]
+                            rgb_pose[2, 3] = rgb_t[2]
 
-                    # TODO: Testing if this is a good practice, min jump to accept data
-                    if (tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance):
-                        self.prev_pose_tran = rgb_t
-                        self.prev_pose_rot = rgb_r
-                        rgb_pose = rgb_r_quat.transformation_matrix
-                        rgb_pose[0, 3] = rgb_t[0]
-                        rgb_pose[1, 3] = rgb_t[1]
-                        rgb_pose[2, 3] = rgb_t[2]
-
-                        self.depth_images.append(data[0])
-                        self.color_images.append(data[1])
-                        self.rgb_poses.append(rgb_pose)
-                        if self.live_integration and self.tsdf_volume is not None:
-                            self.integration_done = False
-                            try:
-                                rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale,
-                                                                                          self.depth_trunc, False)
-                                self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
-                                self.integration_done = True
+                            self.depth_images.append(data[0])
+                            self.color_images.append(data[1])
+                            self.rgb_poses.append(rgb_pose)
+                            if self.live_integration and self.tsdf_volume is not None:
+                                self.integration_done = False
+                                try:
+                                    rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(data[1], data[0], self.depth_scale,
+                                                                                              self.depth_trunc, False)
+                                    self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
+                                    self.integration_done = True
+                                    self.processed_frame_count += 1
+                                    if self.processed_frame_count % 50 == 0:
+                                        mesh = self.tsdf_volume.extract_triangle_mesh()
+                                        if self.crop_mesh:
+                                            cropped_mesh = mesh.crop(self.crop_box)
+                                        else:
+                                            cropped_mesh = mesh
+                                        mesh_msg = meshToRos(cropped_mesh)
+                                        mesh_msg.header.stamp = self.get_clock().now().to_msg()
+                                        mesh_msg.header.frame_id = self.relative_frame
+                                        self.mesh_pub.publish(mesh_msg)
+                                except Exception as e:
+                                    self.get_logger().error("Error processing images into tsdf: " + str(e))
+                                    self.integration_done = True
+                                    return
+                            else:
+                                self.tsdf_integration_data.append([data[0], data[1], rgb_pose])
                                 self.processed_frame_count += 1
-                                if self.processed_frame_count % 50 == 0:
-                                    mesh = self.tsdf_volume.extract_triangle_mesh()
-                                    if self.crop_mesh:
-                                        cropped_mesh = mesh.crop(self.crop_box)
-                                    else:
-                                        cropped_mesh = mesh
-                                    mesh_msg = meshToRos(cropped_mesh)
-                                    mesh_msg.header.stamp = self.get_clock().now().to_msg()
-                                    mesh_msg.header.frame_id = self.relative_frame
-                                    self.mesh_pub.publish(mesh_msg)
-                            except Exception as e:
-                                self.get_logger().error("Error processing images into tsdf: " + str(e))
-                                self.integration_done = True
-                                return
-                        else:
-                            self.tsdf_integration_data.append([data[0], data[1], rgb_pose])
-                            self.processed_frame_count += 1
 
                 self.frame_count += 1
 
     def cameraInfoCallback(self, camera_info):
         self.intrinsics = getIntrinsicsFromMsg(camera_info)
 
+    def __del__(self):
+        """Cleanup when node is destroyed"""
+        if hasattr(self, 'executor'):
+            self.executor.shutdown(wait=True)
+        if CPP_EXTENSIONS_AVAILABLE and hasattr(self, 'memory_manager'):
+            self.memory_manager.print_memory_stats()
+
 
 def main(args=None):
     rclpy.init(args=args)
-    industrial_reconstruction = IndustrialReconstruction()
+    industrial_reconstruction = IndustrialReconstructionHybrid()
     rclpy.spin(industrial_reconstruction)
     industrial_reconstruction.destroy_node()
     rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
