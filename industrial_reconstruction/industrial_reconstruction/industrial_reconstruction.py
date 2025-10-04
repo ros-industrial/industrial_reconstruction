@@ -29,6 +29,7 @@ import open3d as o3d
 import numpy as np
 from pyquaternion import Quaternion
 import json
+import gc
 
 from sensor_msgs.msg import Image, CameraInfo
 from visualization_msgs.msg import Marker
@@ -705,6 +706,33 @@ class IndustrialReconstruction(Node):
                     }
                     with open(scan_dir / "metadata.json", "w") as f:
                         json.dump(meta, f, indent=2)
+                    try:
+                        del full_pcd
+                    except NameError:
+                        pass
+                    try:
+                        del mesh_to_publish
+                    except NameError:
+                        pass
+
+                    # 2) Clear big per-scan caches now that archiving is done
+                    self.color_images.clear()
+                    self.depth_images.clear()
+                    self.rgb_poses.clear()
+                    self.sensor_data.clear()
+                    self.tsdf_integration_data.clear()
+
+                    # 3) Release TSDF volume unless you want to reuse it until next Start
+                    self.tsdf_volume = None
+
+                    # 4) Optional: release crop box state
+                    self.crop_box = None
+                    self.crop_mesh = False
+
+                    # 5) Encourage immediate reclamation in Python
+                    import gc
+                    gc.collect()
+
                     res.success = True
                     res.message = f"Mesh Saved to {target_mesh}"
                     return res
