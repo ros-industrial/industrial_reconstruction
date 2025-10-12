@@ -30,6 +30,7 @@ import numpy as np
 from pyquaternion import Quaternion
 import json
 import gc
+import cv2
 
 from sensor_msgs.msg import Image, CameraInfo
 from visualization_msgs.msg import Marker
@@ -57,7 +58,8 @@ def filterNormals(mesh, direction, angle):
     mesh.compute_vertex_normals()
     tri_normals = np.asarray(mesh.triangle_normals)
     dot_prods = tri_normals @ direction
-    mesh.remove_triangles_by_mask(dot_prods < np.cos(angle))
+    mask = (dot_prods.ravel() < np.cos(angle))  # ensure 1-D mask
+    mesh.remove_triangles_by_mask(mask)
     return mesh
 
 
@@ -141,6 +143,12 @@ class IndustrialReconstruction(Node):
         self.declare_parameter("normal_max_nn", 50)
         self.declare_parameter("orient_k", 50)
 
+        # ---- Depth edge rejection params ----
+        self.declare_parameter("depth_edge_filter", True)          # enable/disable
+        self.declare_parameter("depth_edge_threshold", 0.008)      # meters-per-pixel gradient
+        self.declare_parameter("depth_edge_dilate", 1)             # pixels to dilate (0 = off)
+        self.declare_parameter("depth_gradient_ksize", 3)          # 3 or 5 (Sobel kernel)
+
         # Read manual edit parameters
         self.enable_external_edit = bool(self.get_parameter("enable_external_edit").value)
         self.editor_cmd = str(self.get_parameter("editor_cmd").value)
@@ -208,6 +216,12 @@ class IndustrialReconstruction(Node):
         )
 
         self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", 10)
+
+        # Read depth edge params
+        self.depth_edge_filter = bool(self.get_parameter("depth_edge_filter").value)
+        self.depth_edge_threshold = float(self.get_parameter("depth_edge_threshold").value)
+        self.depth_edge_dilate = int(self.get_parameter("depth_edge_dilate").value)
+        self.depth_gradient_ksize = int(self.get_parameter("depth_gradient_ksize").value)
 
     # ===================== Manual editor launcher =====================
     def _launch_editor_and_wait(self, pointcloud_path: Path, target_mesh_path: Path, timeout_sec: int) -> bool:
@@ -291,6 +305,50 @@ class IndustrialReconstruction(Node):
             o3d.io.write_image("%s/%06d.jpg" % (path_color, s), self.color_images[s])
             write_pose("%s/%06d.pose" % (path_pose, s), self.rgb_poses[s])
             save_intrinsic_as_json(join(path_output, "camera_intrinsic.json"), self.intrinsics)
+
+    # ===================== Depth edge suppression =====================
+    def _suppress_depth_edges(self, depth_u: np.ndarray) -> np.ndarray:
+        """
+        Zero-out depth at strong depth discontinuities to avoid TSDF 'skins'.
+        Accepts 16UC1 (mm) or float32 (m). Returns same dtype as input.
+        Uses Sobel gradient on depth-in-meters; masks pixels with |∇z| > threshold.
+        """
+        if not self.depth_edge_filter:
+            return depth_u
+
+        # Convert to meters float for gradient
+        if depth_u.dtype == np.uint16:
+            depth_m = depth_u.astype(np.float32) / float(self.depth_scale)
+            convert_back = "u16"
+        else:
+            depth_m = depth_u.astype(np.float32)
+            convert_back = "f32"
+
+        # Compute gradient magnitude |∇z| in m/pixel
+        k = 3 if self.depth_gradient_ksize not in (3, 5) else self.depth_gradient_ksize
+        gx = cv2.Sobel(depth_m, cv2.CV_32F, 1, 0, ksize=k)
+        gy = cv2.Sobel(depth_m, cv2.CV_32F, 0, 1, ksize=k)
+        gradmag = cv2.magnitude(gx, gy)
+
+        # Mask where gradient is large
+        thr = max(0.0, float(self.depth_edge_threshold))
+        mask = gradmag > thr
+
+        # Optional: expand the mask a bit to remove grazing-edge pixels
+        if self.depth_edge_dilate > 0:
+            r = int(self.depth_edge_dilate)
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))
+            mask = cv2.dilate(mask.astype(np.uint8), kernel, iterations=1).astype(bool)
+
+        # Zero out those pixels (0 = invalid depth for Open3D)
+        if convert_back == "u16":
+            out = depth_u.copy()
+            out[mask] = 0
+            return out
+        else:
+            out = depth_m.copy()
+            out[mask] = 0.0
+            return out
 
     # ===================== Start reconstruction =====================
     def startReconstructionCallback(self, req, res):
@@ -537,7 +595,7 @@ class IndustrialReconstruction(Node):
                 while len(self.tsdf_integration_data) > 0:
                     data = self.tsdf_integration_data.popleft()
                     rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
-                        data[1], data[0], self.depth_scale, self.depth_trunc, False
+                        data[1], data[0], self.depth_scale, self.depth_trunc, self.convert_rgb_to_intensity
                     )
                     self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(data[2]))
 
@@ -644,8 +702,7 @@ class IndustrialReconstruction(Node):
             self.mesh_pub.publish(mesh_msg)
             self.get_logger().info("Mesh Saved to " + str(target_mesh))
 
-            # Preserve original archive behavior (optional mesh of raw TSDF if desired)
-            # Preserve original archive behavior, but place everything under a new timestamped folder
+            # Archive if requested
             if req.archive_directory != "":
                 # Create a per-scan subfolder: MM-DD-YYYY-HH-MM-SS (local time)
                 ts = time.strftime("%m-%d-%Y-%H-%M-%S", time.localtime())
@@ -706,38 +763,39 @@ class IndustrialReconstruction(Node):
                     }
                     with open(scan_dir / "metadata.json", "w") as f:
                         json.dump(meta, f, indent=2)
-                    try:
-                        del full_pcd
-                    except NameError:
-                        pass
-                    try:
-                        del mesh_to_publish
-                    except NameError:
-                        pass
-
-                    # 2) Clear big per-scan caches now that archiving is done
-                    self.color_images.clear()
-                    self.depth_images.clear()
-                    self.rgb_poses.clear()
-                    self.sensor_data.clear()
-                    self.tsdf_integration_data.clear()
-
-                    # 3) Release TSDF volume unless you want to reuse it until next Start
-                    self.tsdf_volume = None
-
-                    # 4) Optional: release crop box state
-                    self.crop_box = None
-                    self.crop_mesh = False
-
-                    # 5) Encourage immediate reclamation in Python
-                    import gc
-                    gc.collect()
-
-                    res.success = True
-                    res.message = f"Mesh Saved to {target_mesh}"
-                    return res
                 except Exception as e:
                     self.get_logger().warn(f"Failed to write metadata.json: {e}")
+
+                # Cleanup big per-scan caches now that archiving is done
+                try:
+                    del full_pcd
+                except NameError:
+                    pass
+                try:
+                    del mesh_to_publish
+                except NameError:
+                    pass
+
+                self.color_images.clear()
+                self.depth_images.clear()
+                self.rgb_poses.clear()
+                self.sensor_data.clear()
+                self.tsdf_integration_data.clear()
+
+                self.tsdf_volume = None
+                self.crop_box = None
+                self.crop_mesh = False
+                gc.collect()
+
+                res.success = True
+                res.message = f"Mesh Saved to {target_mesh}"
+                return res
+            else:
+                # No archive; return success now
+                res.success = True
+                res.message = f"Mesh Saved to {target_mesh}"
+                return res
+
         except Exception as e:
             self.get_logger().error(f"stopReconstruction failed: {e}")
             res.success = False
@@ -748,16 +806,44 @@ class IndustrialReconstruction(Node):
     def cameraCallback(self, depth_image_msg, rgb_image_msg):
         if self.record:
             try:
-                # Convert your ROS Image message to OpenCV2
-                # TODO: Generalize image type
-                cv2_depth_img = self.bridge.imgmsg_to_cv2(depth_image_msg, "16UC1")
-                cv2_rgb_img = self.bridge.imgmsg_to_cv2(rgb_image_msg, rgb_image_msg.encoding)
+                # Convert ROS Image messages to OpenCV2
+                depth_u16 = self.bridge.imgmsg_to_cv2(depth_image_msg, "16UC1")
+                color_img = self.bridge.imgmsg_to_cv2(rgb_image_msg, rgb_image_msg.encoding)
+
+                if depth_u16.size == 0:
+                    return
+
+                # --- Depth denoise with bilateral on float32 meters ---
+                depth_f32 = depth_u16.astype(np.float32) / float(self.depth_scale)
+
+                # Preserve invalids (zeros)
+                invalid_mask = (depth_u16 == 0)
+
+                # Bilateral filter (units: meters for sigmaColor, pixels for sigmaSpace)
+                # Good defaults: d=5, sigmaColor=0.02m (2 cm), sigmaSpace=7 px
+                depth_f32 = cv2.bilateralFilter(depth_f32, d=5, sigmaColor=0.02, sigmaSpace=7)
+
+                # Restore invalids
+                depth_f32[invalid_mask] = 0.0
+
+                # Edge suppression on float32 meters
+                depth_f32 = self._suppress_depth_edges(depth_f32)
+
+                # Convert back to 16-bit depth units for Open3D (0 stays 0)
+                depth_u16 = np.clip(
+                    np.round(depth_f32 * float(self.depth_scale)),
+                    0, np.iinfo(np.uint16).max
+                ).astype(np.uint16)
+
+                o3d_depth = o3d.geometry.Image(depth_u16)
+                o3d_color = o3d.geometry.Image(color_img)
+
             except CvBridgeError:
                 self.get_logger().error("Error converting ros msg to cv img")
                 return
             else:
                 self.sensor_data.append(
-                    [o3d.geometry.Image(cv2_depth_img), o3d.geometry.Image(cv2_rgb_img), rgb_image_msg.header.stamp]
+                    [o3d_depth, o3d_color, rgb_image_msg.header.stamp]
                 )
                 if self.frame_count > 30:
                     data = self.sensor_data.popleft()
@@ -774,7 +860,7 @@ class IndustrialReconstruction(Node):
                     tran_dist = np.linalg.norm(rgb_t - self.prev_pose_tran)
                     rot_dist = Quaternion.absolute_distance(Quaternion(self.prev_pose_rot), rgb_r_quat)
 
-                    # TODO: Testing if this is a good practice, min jump to accept data
+                    # Min jump to accept data
                     if (tran_dist >= self.translation_distance) or (rot_dist >= self.rotational_distance):
                         self.prev_pose_tran = rgb_t
                         self.prev_pose_rot = rgb_r
@@ -790,7 +876,7 @@ class IndustrialReconstruction(Node):
                             self.integration_done = False
                             try:
                                 rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
-                                    data[1], data[0], self.depth_scale, self.depth_trunc, False
+                                    data[1], data[0], self.depth_scale, self.depth_trunc, self.convert_rgb_to_intensity
                                 )
                                 self.tsdf_volume.integrate(rgbd, self.intrinsics, np.linalg.inv(rgb_pose))
                                 self.integration_done = True

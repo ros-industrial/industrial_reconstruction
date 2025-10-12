@@ -1,0 +1,51 @@
+industrial_reconstruction:
+  ros__parameters:
+    depth_image_topic: /camera/depth/image_raw
+    color_image_topic: /camera/color/image_raw
+    camera_info_topic: /camera/color/camera_info
+
+    cache_count: 10
+    slop: 0.01
+    live_publish_stride: 50
+    keep_top_k_clusters: 1
+
+    # Manual editor
+    enable_external_edit: false
+    editor_cmd: meshlab
+    external_edit_timeout_sec: 0
+
+    # Auto pipeline
+    auto_filter_strategy: 'off'      # off|script|implicit_filter
+    auto_filter_cmd: ""                # e.g. "python /opt/filter.py --in {in} --out {out}"
+    auto_normals: 'open3d'           # open3d|script|off
+    hae_cmd: ""
+    auto_meshing_method: poisson       # poisson|bpa|none
+    poisson_depth: 9
+    bpa_radii: [0.005, 0.01, 0.02]
+
+    normal_radius: 0.02
+    normal_max_nn: 50
+    orient_k: 50
+
+    # CAD alignment & post
+    cad_align_enable: true
+    cad_mesh_path: /data/parts/partA.stl
+    global_reg_method: fgr
+    scale_search: true
+    scale_min: 0.98
+    scale_max: 1.02
+    scale_step: 0.001
+    icp_max_corr: 0.01
+    icp_robust_kernel: tukey
+    icp_trim_ratio: 0.8
+
+    enable_cad_guided_postprocess: true
+    cad_distance_cull_m: 0.004
+    cad_snap_max_step_m: 0.003
+    cad_snap_weight: 0.5
+
+    integrate_in_cad_frame: false
+    enable_cad_sdf_tracking: false
+    cad_sdf_voxel: 0.002
+    cad_sdf_trunc: 0.01
+    tracking_max_iterations: 10
