@@ -44,6 +44,7 @@ from src.industrial_reconstruction.utility.file import (
     make_folder_keep_contents,
 )
 from industrial_reconstruction_msgs.srv import StartReconstruction, StopReconstruction
+from std_srvs.srv import SetBool
 from src.industrial_reconstruction.utility.ros import (
     getIntrinsicsFromMsg,
     meshToRos,
@@ -117,6 +118,7 @@ class IndustrialReconstruction(Node):
         self.declare_parameter("camera_info_topic")
         self.declare_parameter("cache_count", 10)
         self.declare_parameter("slop", 0.01)
+        self.declare_parameter("camera_name", "camera")  # Camera namespace for controlling streams
 
         # Manual external editor hook
         self.declare_parameter("enable_external_edit", False)
@@ -222,6 +224,26 @@ class IndustrialReconstruction(Node):
         self.depth_edge_threshold = float(self.get_parameter("depth_edge_threshold").value)
         self.depth_edge_dilate = int(self.get_parameter("depth_edge_dilate").value)
         self.depth_gradient_ksize = int(self.get_parameter("depth_gradient_ksize").value)
+
+        # Camera stream control using toggle_color and toggle_depth services
+        self.camera_name = str(self.get_parameter("camera_name").value)
+        self.toggle_color_client = self.create_client(
+            SetBool, f"/{self.camera_name}/toggle_color"
+        )
+        self.toggle_depth_client = self.create_client(
+            SetBool, f"/{self.camera_name}/toggle_depth"
+        )
+        
+        # Wait for camera services to be available and disable streams initially
+        self.get_logger().info(f"Waiting for camera services /{self.camera_name}/toggle_color and /{self.camera_name}/toggle_depth...")
+        color_ready = self.toggle_color_client.wait_for_service(timeout_sec=10.0)
+        depth_ready = self.toggle_depth_client.wait_for_service(timeout_sec=10.0)
+        
+        if color_ready and depth_ready:
+            self.get_logger().info("Camera services available, disabling streams initially")
+            self._control_camera_streams(False)
+        else:
+            self.get_logger().warn(f"Camera services not available. Stream control will be disabled.")
 
     # ===================== Manual editor launcher =====================
     def _launch_editor_and_wait(self, pointcloud_path: Path, target_mesh_path: Path, timeout_sec: int) -> bool:
@@ -350,6 +372,64 @@ class IndustrialReconstruction(Node):
             out[mask] = 0.0
             return out
 
+    # ===================== Camera stream control =====================
+    def _control_camera_streams(self, enable: bool):
+        """Enable or disable camera streams via toggle_color and toggle_depth services"""
+        if not self.toggle_color_client.service_is_ready() or not self.toggle_depth_client.service_is_ready():
+            self.get_logger().warn(f"Camera services not ready, cannot {'enable' if enable else 'disable'} streams")
+            return False
+        
+        request = SetBool.Request()
+        request.data = enable
+        
+        success = True
+        
+        # Toggle color stream
+        try:
+            future_color = self.toggle_color_client.call_async(request)
+            timeout = 5.0
+            start_time = time.time()
+            while not future_color.done() and (time.time() - start_time) < timeout:
+                rclpy.spin_once(self, timeout_sec=0.1)
+            
+            if future_color.done():
+                response = future_color.result()
+                if response.success:
+                    self.get_logger().info(f"Color stream {'enabled' if enable else 'disabled'} successfully")
+                else:
+                    self.get_logger().error(f"Failed to {'enable' if enable else 'disable'} color stream: {response.message}")
+                    success = False
+            else:
+                self.get_logger().warn(f"Timeout waiting for color stream toggle response")
+                success = False
+        except Exception as e:
+            self.get_logger().error(f"Exception calling color stream toggle: {e}")
+            success = False
+        
+        # Toggle depth stream
+        try:
+            future_depth = self.toggle_depth_client.call_async(request)
+            timeout = 5.0
+            start_time = time.time()
+            while not future_depth.done() and (time.time() - start_time) < timeout:
+                rclpy.spin_once(self, timeout_sec=0.1)
+            
+            if future_depth.done():
+                response = future_depth.result()
+                if response.success:
+                    self.get_logger().info(f"Depth stream {'enabled' if enable else 'disabled'} successfully")
+                else:
+                    self.get_logger().error(f"Failed to {'enable' if enable else 'disable'} depth stream: {response.message}")
+                    success = False
+            else:
+                self.get_logger().warn(f"Timeout waiting for depth stream toggle response")
+                success = False
+        except Exception as e:
+            self.get_logger().error(f"Exception calling depth stream toggle: {e}")
+            success = False
+        
+        return success
+
     # ===================== Start reconstruction =====================
     def startReconstructionCallback(self, req, res):
         try:
@@ -420,6 +500,9 @@ class IndustrialReconstruction(Node):
 
             self.live_integration = req.live
             self.record = True
+
+            # Enable camera streams when starting reconstruction
+            self._control_camera_streams(True)
 
             res.success = True
             return res
@@ -580,6 +663,9 @@ class IndustrialReconstruction(Node):
         try:
             self.get_logger().info("Stop Reconstruction")
             self.record = False
+
+            # Disable camera streams when stopping reconstruction
+            self._control_camera_streams(False)
 
             while not self.integration_done:
                 time.sleep(1.0)
