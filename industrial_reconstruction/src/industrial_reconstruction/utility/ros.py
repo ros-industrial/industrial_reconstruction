@@ -65,6 +65,7 @@ def meshToRos(mesh):
     out_msg.type = out_msg.TRIANGLE_LIST
     out_msg.action = out_msg.ADD
     out_msg.id = 1
+    out_msg.frame_locked = True
     out_msg.scale.x = 1.0
     out_msg.scale.y = 1.0
     out_msg.scale.z = 1.0

@@ -15,6 +15,7 @@
 import sys
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, HistoryPolicy, ReliabilityPolicy, DurabilityPolicy
 from tf2_ros.buffer import Buffer
 from tf2_ros import TransformListener
 import open3d as o3d
@@ -130,14 +131,20 @@ class IndustrialReconstruction(Node):
 
         self.info_sub = self.create_subscription(CameraInfo, self.camera_info_topic, self.cameraInfoCallback, 10)
 
-        self.mesh_pub = self.create_publisher(Marker, "industrial_reconstruction_mesh", 10)
+        publisher_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+        self.mesh_pub = self.create_publisher(Marker, "industrial_reconstruction_mesh", publisher_qos)
+        self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", publisher_qos)
 
         self.start_server = self.create_service(StartReconstruction, 'start_reconstruction',
                                                 self.startReconstructionCallback)
         self.stop_server = self.create_service(StopReconstruction, 'stop_reconstruction',
                                                self.stopReconstructionCallback)
 
-        self.tsdf_volume_pub = self.create_publisher(Marker, "tsdf_volume", 10)
 
     def archiveData(self, path_output):
         path_depth = join(path_output, "depth")
@@ -183,6 +190,7 @@ class IndustrialReconstruction(Node):
             self.crop_box_msg.type = self.crop_box_msg.CUBE
             self.crop_box_msg.action = self.crop_box_msg.ADD
             self.crop_box_msg.id = 1
+            self.crop_box_msg.frame_locked = True
             self.crop_box_msg.scale.x = max_bound[0] - min_bound[0]
             self.crop_box_msg.scale.y = max_bound[1] - min_bound[1]
             self.crop_box_msg.scale.z = max_bound[2] - min_bound[2]
