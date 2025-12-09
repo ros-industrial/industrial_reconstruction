@@ -183,6 +183,7 @@ class IndustrialReconstruction(Node):
             self.crop_box_msg.type = self.crop_box_msg.CUBE
             self.crop_box_msg.action = self.crop_box_msg.ADD
             self.crop_box_msg.id = 1
+            self.crop_box_msg.frame_locked = True
             self.crop_box_msg.scale.x = max_bound[0] - min_bound[0]
             self.crop_box_msg.scale.y = max_bound[1] - min_bound[1]
             self.crop_box_msg.scale.z = max_bound[2] - min_bound[2]
