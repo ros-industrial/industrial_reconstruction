@@ -284,7 +284,6 @@ class IndustrialReconstruction(Node):
 
         o3d.io.write_triangle_mesh(req.mesh_filepath, cropped_mesh, False, True)
         mesh_msg = meshToRos(cropped_mesh)
-        mesh_msg.header.stamp = self.get_clock().now().to_msg()
         mesh_msg.header.frame_id = self.relative_frame
         self.mesh_pub.publish(mesh_msg)
         self.get_logger().info("Mesh Saved to " + req.mesh_filepath)
