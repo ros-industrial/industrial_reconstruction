@@ -197,7 +197,7 @@ class ArchivePlayer(Node):
 def main(args=None):
 
     rclpy.init(args=args)
-    ir_arcihve_player = ArchivePlayer()
-    rclpy.spin(ir_arcihve_player)
-    ir_arcihve_player.destroy_node()
+    ir_archive_player = ArchivePlayer()
+    rclpy.spin(ir_archive_player)
+    ir_archive_player.destroy_node()
     rclpy.shutdown()
