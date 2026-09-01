@@ -156,12 +156,13 @@ class IndustrialReconstruction(Node):
         make_clean_folder(path_color)
         make_clean_folder(path_pose)
 
+        save_intrinsic_as_json(join(path_output, "camera_intrinsic.json"), self.intrinsics)
+
         for s in range(len(self.color_images)):
             # Save your OpenCV2 image as a jpeg
             o3d.io.write_image("%s/%06d.png" % (path_depth, s), self.depth_images[s])
             o3d.io.write_image("%s/%06d.jpg" % (path_color, s), self.color_images[s])
             write_pose("%s/%06d.pose" % (path_pose, s), self.rgb_poses[s])
-            save_intrinsic_as_json(join(path_output, "camera_intrinsic.json"), self.intrinsics)
 
 
     def startReconstructionCallback(self, req, res):
