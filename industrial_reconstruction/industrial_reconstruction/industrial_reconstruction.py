@@ -294,7 +294,8 @@ class IndustrialReconstruction(Node):
             archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
             o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
 
-        self.get_logger().info("DONE")
+        self.get_logger().info("Finished archiving data to " + req.archive_directory)
+        self.get_logger().info("\n \n INDUSTRIAL RECONSTRUCTION PIPLINE HAS COMPLETED \n \n")
         res.success = True
         res.message = "Mesh Saved to " + req.mesh_filepath
         return res
