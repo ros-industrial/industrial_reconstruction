@@ -164,7 +164,7 @@ Call service to stop publishing data
 ros2 service call /stop_publishing std_srvs/srv/Trigger
 ```
 
-Optionally restart back at the beginning of the data set (The node will automatically cycle back to the first data point and continue forever without intervention)
+Optionally restart back at the beginning of the data set (By default, the node will automatically cycle back to the first data point and continue forever without intervention. To disable this, set the ```looping_enabled``` parameter false).
 ```
 ros2 service call /restart_publishing std_srvs/srv/Trigger
 ```

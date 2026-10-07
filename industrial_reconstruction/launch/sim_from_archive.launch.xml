@@ -8,6 +8,7 @@
   <arg name="tracking_frame" default="/sim_camera"/>
   <arg name="image_directory"/>
   <arg name="pub_rate" default="20"/>
+  <arg name="looping_enabled" default="true"/>
   <arg name="cache_count" default="10"/>
   <arg name="slop" default="0.01"/>
   <arg name="rviz" default="false"/>
@@ -20,6 +21,7 @@
     <arg name="tracking_frame" value="$(var tracking_frame)"/>
     <arg name="image_directory" value="$(var image_directory)"/>
     <arg name="pub_rate" value="$(var pub_rate)"/>
+    <arg name="looping_enabled" value="$(var looping_enabled)"/>
   </include>
 
   <include file="$(find-pkg-share industrial_reconstruction)/launch/reconstruction.launch.xml">
