@@ -23,7 +23,7 @@ import numpy as np
 
 from pyquaternion import Quaternion
 from collections import deque
-from os.path import exists, join, isfile
+from os.path import exists, join, isfile, dirname
 from sensor_msgs.msg import Image, CameraInfo
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from src.industrial_reconstruction.utility.file import make_clean_folder, write_pose, read_pose, save_intrinsic_as_json, make_folder_keep_contents
@@ -281,22 +281,48 @@ class IndustrialReconstruction(Node):
         cropped_mesh.remove_triangles_by_mask(triangles_to_remove)
         cropped_mesh.remove_unreferenced_vertices()
 
+        directory = dirname(req.mesh_filepath)
+        try:
+            if directory:
+                if not exists(directory):
+                    self.get_logger().info(f"Directory does not exist, creating: '{directory}'")
+                    make_folder_keep_contents(directory)
+                else:
+                    self.get_logger().info(f"Directory already exists: '{directory}'")
+            else:
+                self.get_logger().info("No directory component, check mesh_filepath")
 
-        o3d.io.write_triangle_mesh(req.mesh_filepath, cropped_mesh, False, True)
-        mesh_msg = meshToRos(cropped_mesh)
-        mesh_msg.header.frame_id = self.relative_frame
-        self.mesh_pub.publish(mesh_msg)
-        self.get_logger().info("Mesh Saved to " + req.mesh_filepath)
+            if not o3d.io.write_triangle_mesh(req.mesh_filepath, cropped_mesh, False, True):
+                res.success = False
+                res.message = "Failed to save mesh to " + req.mesh_filepath
+                self.get_logger().error(res.message)
+                return res
+            mesh_msg = meshToRos(cropped_mesh)
+            mesh_msg.header.frame_id = self.relative_frame
+            self.mesh_pub.publish(mesh_msg)
+            self.get_logger().info("Mesh Saved to " + req.mesh_filepath)
 
-        if (req.archive_directory != ""):
-            self.get_logger().info("Archiving data to " + req.archive_directory)
-            self.archiveData(req.archive_directory)
-            archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
-            o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
+            if (req.archive_directory != ""):
+                self.get_logger().info("Archiving data to " + req.archive_directory)
+                try:
+                    self.archiveData(req.archive_directory)
+                    archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
+                    o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
+                    self.get_logger().info(f"Successfully archived mesh to {archive_mesh_filepath}")
+                except Exception as e:
+                    self.get_logger().error(f"Failed to archive data to {req.archive_directory}: {e}", exc_info=True)
+                    res.success = False
+                    res.message = f"Failed to archive data: {e}"
+                    return res
 
-        self.get_logger().info("DONE")
-        res.success = True
-        res.message = "Mesh Saved to " + req.mesh_filepath
+            self.get_logger().info("DONE")
+            res.success = True
+            res.message = "Mesh Saved to " + req.mesh_filepath
+
+        except Exception as e:
+            self.get_logger().error(f"Error while creating directory or saving mesh: {e}")
+            res.success = False
+            res.message = f"Failed to save mesh: {e}"
         return res
 
     def cameraCallback(self, depth_image_msg, rgb_image_msg):
