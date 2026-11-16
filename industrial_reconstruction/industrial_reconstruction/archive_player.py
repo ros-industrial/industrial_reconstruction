@@ -47,6 +47,7 @@ class ArchivePlayer(Node):
         self.declare_parameter("pub_rate")
         self.declare_parameter("color_image_encoding", "rgb8")
         self.declare_parameter("depth_image_encoding", "16UC1")
+        self.declare_parameter("looping_enabled", True)
 
         try:
             self.depth_image_topic = str(self.get_parameter('depth_image_topic').value)
@@ -84,6 +85,10 @@ class ArchivePlayer(Node):
             self.depth_image_encoding = str(self.get_parameter('depth_image_encoding').value)
         except:
             self.get_logger().error("Failed to load depth_image_encoding parameter")
+        try:
+            self.looping_enabled = self.get_parameter('looping_enabled').value
+        except:
+            self.get_logger().error("Failed to load looping_enabled parameter")
 
         for parameter in self._parameters.values():
             print(parameter.name, ":", parameter.value)
@@ -154,9 +159,10 @@ class ArchivePlayer(Node):
 
     def timerCallback(self):
         if self.publishing:
-            self.current_index += 1
-            if self.current_index >= self.num_imgs:
+            if (self.current_index >= self.num_imgs) and (self.looping_enabled):
                 self.current_index = 0
+            if (self.current_index == self.num_imgs - 1) and (self.looping_enabled == False):
+                self.publishing = False
             color_index_string = f"{self.current_index:06d}" + ".jpg"
             depth_index_string = f"{self.current_index:06d}" + ".png"
             pose_index_string = f"{self.current_index:06d}" + ".pose"
@@ -192,6 +198,8 @@ class ArchivePlayer(Node):
             image_message_depth.header.frame_id = self.pose_track_frame
             self.rgb_pub.publish(image_message_color)
             self.depth_pub.publish(image_message_depth)
+
+            self.current_index += 1
 
 
 def main(args=None):

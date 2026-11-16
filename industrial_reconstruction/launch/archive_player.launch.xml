@@ -8,6 +8,7 @@
   <arg name="tracking_frame"/>
   <arg name="image_directory"/>
   <arg name="pub_rate"/>
+  <arg name="looping_enabled"/>
 
   <node pkg="industrial_reconstruction" exec="archive_player" name="archive_player" output="screen">
     <param name="depth_image_topic" value="$(var depth_image_topic)"/>
@@ -17,6 +18,7 @@
     <param name="tracking_frame" value="$(var tracking_frame)"/>
     <param name="image_directory" value="$(var image_directory)"/>
     <param name="pub_rate" value="$(var pub_rate)"/>
+    <param name="looping_enabled" value="$(var looping_enabled)"/>
   </node>
 
 </launch>
